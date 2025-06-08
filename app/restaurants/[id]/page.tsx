@@ -4,12 +4,7 @@ import { useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useRestaurantStore } from "@/lib/stores/useRestaurantStore"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -84,6 +79,7 @@ export default function RestaurantDetailPage() {
                 {currentRestaurant.isActive ? "Sí" : "No"}
               </Badge>
             </div>
+
             {currentRestaurant.doc_ruc_url && (
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Documento RUC:</span>
@@ -97,6 +93,7 @@ export default function RestaurantDetailPage() {
                 </a>
               </div>
             )}
+
             {currentRestaurant.imageUrl && (
               <img
                 src={currentRestaurant.imageUrl}
@@ -112,8 +109,8 @@ export default function RestaurantDetailPage() {
             <CardTitle>Categorías</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            {currentRestaurant.categorias?.map((cat) => (
-              <Badge key={cat}>{cat}</Badge>
+            {currentRestaurant.categorias?.map((cat, index) => (
+              <Badge key={index}>{cat?.NombreCategoria}</Badge>
             ))}
           </CardContent>
         </Card>
@@ -127,7 +124,7 @@ export default function RestaurantDetailPage() {
               <div key={d.day} className="flex justify-between">
                 <span className="text-sm font-medium">{d.day}</span>
                 <span className="text-sm">
-                  {d.isOpen ? `${d.start} - ${d.end}` : "Cerrado"}
+                  {d.isOpen ? `${d.start ?? "00:00"} - ${d.end ?? "23:59"}` : "Cerrado"}
                 </span>
               </div>
             ))}
@@ -139,8 +136,8 @@ export default function RestaurantDetailPage() {
             <CardTitle>Platillos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {currentRestaurant.platillos?.map((p) => (
-              <div key={p.Nombre} className="flex justify-between">
+            {currentRestaurant.platillos?.map((p, index) => (
+              <div key={index} className="flex justify-between">
                 <span className="text-sm font-medium">{p.Nombre}</span>
                 <span className="text-sm">S/ {p.Precio}</span>
               </div>
