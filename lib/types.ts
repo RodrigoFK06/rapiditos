@@ -38,6 +38,7 @@ export interface Restaurant {
   webSite?: string
   reference_place?: string
   imageUrl: string
+  doc_ruc_url?: string
   userId: string
   numDoc: string
   typeDoc: string

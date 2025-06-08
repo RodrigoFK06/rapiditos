@@ -1,9 +1,12 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useOrderStore } from "@/lib/stores/useOrderStore"
 import { useRiderStore } from "@/lib/stores/useRiderStore"
+import { doc, getDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import type { User, Restaurant, ClientAddress, Rider } from "@/lib/types"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,6 +29,11 @@ export default function OrderDetailPage() {
 
   const { activeRiders, fetchActiveRiders } = useRiderStore()
 
+  const [client, setClient] = useState<User | null>(null)
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
+  const [address, setAddress] = useState<ClientAddress | null>(null)
+  const [assignedRider, setAssignedRider] = useState<Rider | null>(null)
+
   useEffect(() => {
     if (orderId) {
       fetchOrderById(orderId)
@@ -33,6 +41,32 @@ export default function OrderDetailPage() {
       fetchActiveRiders()
     }
   }, [orderId, fetchOrderById, fetchOrderDetails, fetchActiveRiders])
+
+  useEffect(() => {
+    if (currentOrder) {
+      if (currentOrder.cliente_ref) {
+        getDoc(doc(db, "users", currentOrder.cliente_ref)).then((snap) => {
+          if (snap.exists()) setClient({ id: snap.id, ...(snap.data() as User) })
+        })
+      }
+      if (currentOrder.restaurantref) {
+        getDoc(doc(db, "restaurant", currentOrder.restaurantref)).then((snap) => {
+          if (snap.exists())
+            setRestaurant({ id: snap.id, ...(snap.data() as Restaurant) })
+        })
+      }
+      if (currentOrder.client_address_ref) {
+        getDoc(doc(db, "ClientAddress", currentOrder.client_address_ref)).then((snap) => {
+          if (snap.exists()) setAddress({ id: snap.id, ...(snap.data() as ClientAddress) })
+        })
+      }
+      if (currentOrder.assigned_rider_ref) {
+        getDoc(doc(db, "rider", currentOrder.assigned_rider_ref)).then((snap) => {
+          if (snap.exists()) setAssignedRider({ id: snap.id, ...(snap.data() as Rider) })
+        })
+      }
+    }
+  }, [currentOrder])
 
   const handleStatusUpdate = async (newStatus: OrderStatus) => {
     if (!currentOrder) return
@@ -95,12 +129,28 @@ export default function OrderDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Cliente:</span>
-                <span className="text-sm">{currentOrder.cliente_nombre}</span>
+                <span className="text-sm">
+                  {client ? client.display_name : currentOrder.cliente_nombre}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Restaurante:</span>
-                <span className="text-sm">{currentOrder.restaurante_nombre}</span>
+                <span className="text-sm">
+                  {restaurant ? restaurant.name : currentOrder.restaurante_nombre}
+                </span>
               </div>
+              {address && (
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Dirección:</span>
+                  <span className="text-sm">{address.address}</span>
+                </div>
+              )}
+              {assignedRider && (
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Rider asignado:</span>
+                  <span className="text-sm">{assignedRider.display_name}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Total:</span>
                 <Badge variant="outline">{formatCurrency(currentOrder.total)}</Badge>

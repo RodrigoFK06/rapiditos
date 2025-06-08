@@ -1,10 +1,28 @@
-import { collection, getDocs, query, where, addDoc, orderBy } from "firebase/firestore"
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  addDoc,
+  orderBy,
+  doc,
+} from "firebase/firestore"
 import { db } from "../firebase"
 import type { Chat, Message } from "../types"
 
+export const getAllChats = async (): Promise<Chat[]> => {
+  try {
+    const snapshot = await getDocs(collection(db, "chat"))
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Chat)
+  } catch (error) {
+    console.error("Error fetching chats:", error)
+    return []
+  }
+}
+
 export const getChatByOrderId = async (orderId: string): Promise<Chat | null> => {
   try {
-    const q = query(collection(db, "chat"), where("orderref", "==", orderId))
+    const q = query(collection(db, "chat"), where("orderref", "==", doc(db, "orders", orderId)))
     const chatSnapshot = await getDocs(q)
 
     if (chatSnapshot.empty) return null
@@ -19,7 +37,7 @@ export const getChatByOrderId = async (orderId: string): Promise<Chat | null> =>
 
 export const getMessagesByChat = async (chatId: string): Promise<Message[]> => {
   try {
-    const q = query(collection(db, "messages"), where("chat_ref", "==", chatId), orderBy("timestamp", "asc"))
+    const q = query(collection(db, "messages"), where("chat_ref", "==", doc(db, "chat", chatId)), orderBy("timestamp", "asc"))
     const messagesSnapshot = await getDocs(q)
     return messagesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Message)
   } catch (error) {
