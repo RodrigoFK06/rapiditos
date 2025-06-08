@@ -60,8 +60,18 @@ export default function RestaurantDetailPage() {
               <span className="text-sm">{currentRestaurant.addressText}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-sm font-medium">Teléfono:</span>
+              <span className="text-sm">{currentRestaurant.restaurantPhone}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-sm font-medium">Encargado:</span>
               <span className="text-sm">{currentRestaurant.managerName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm font-medium">Descripción:</span>
+              <span className="text-sm text-right">
+                {currentRestaurant.description}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm font-medium">Activo:</span>
@@ -69,6 +79,69 @@ export default function RestaurantDetailPage() {
                 {currentRestaurant.isActive ? "Sí" : "No"}
               </Badge>
             </div>
+
+            {currentRestaurant.doc_ruc_url && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Documento RUC:</span>
+                <a
+                  href={currentRestaurant.doc_ruc_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline"
+                >
+                  Ver documento
+                </a>
+              </div>
+            )}
+
+            {currentRestaurant.imageUrl && (
+              <img
+                src={currentRestaurant.imageUrl}
+                alt={currentRestaurant.name}
+                className="h-32 w-full object-cover rounded-md"
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Categorías</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {currentRestaurant.categorias?.map((cat, index) => (
+              <Badge key={index}>{cat?.NombreCategoria}</Badge>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Horarios</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {currentRestaurant.days?.map((d) => (
+              <div key={d.day} className="flex justify-between">
+                <span className="text-sm font-medium">{d.day}</span>
+                <span className="text-sm">
+                  {d.isOpen ? `${d.start ?? "00:00"} - ${d.end ?? "23:59"}` : "Cerrado"}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Platillos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {currentRestaurant.platillos?.map((p, index) => (
+              <div key={index} className="flex justify-between">
+                <span className="text-sm font-medium">{p.Nombre}</span>
+                <span className="text-sm">S/ {p.Precio}</span>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useChatStore } from "@/lib/stores/useChatStore"
+import { formatDate } from "@/lib/utils"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -64,7 +65,7 @@ export default function ChatDetailPage() {
                 <div key={msg.id} className="border p-2 rounded-md">
                   <p className="text-sm">{msg.clientext || msg.ridertext || msg.admintext}</p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(msg.timestamp as unknown as string).toLocaleString()}
+                    {formatDate(msg.timestamp as unknown as Date)}
                   </p>
                 </div>
               ))}

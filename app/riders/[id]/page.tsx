@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useRiderStore } from "@/lib/stores/useRiderStore"
+import { useUserStore } from "@/lib/stores/useUserStore"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,12 +17,19 @@ export default function RiderDetailPage() {
   const riderId = params.id as string
 
   const { currentRider, isLoading, fetchRiderById } = useRiderStore()
+  const { currentUser, fetchUserById } = useUserStore()
 
   useEffect(() => {
     if (riderId) {
       fetchRiderById(riderId)
     }
   }, [riderId, fetchRiderById])
+
+  useEffect(() => {
+    if (currentRider && currentRider.user_ref) {
+      fetchUserById(currentRider.user_ref)
+    }
+  }, [currentRider, fetchUserById])
 
   if (isLoading || !currentRider) {
     return (
@@ -67,6 +75,24 @@ export default function RiderDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {currentUser && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Usuario Base</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Nombre:</span>
+                <span className="text-sm">{currentUser.display_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Email:</span>
+                <span className="text-sm">{currentUser.email}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   )
