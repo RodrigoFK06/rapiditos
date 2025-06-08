@@ -1,6 +1,23 @@
-import { collection, getDocs, query, where, addDoc, orderBy } from "firebase/firestore"
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  addDoc,
+  orderBy,
+} from "firebase/firestore"
 import { db } from "../firebase"
 import type { Chat, Message } from "../types"
+
+export const getAllChats = async (): Promise<Chat[]> => {
+  try {
+    const snapshot = await getDocs(collection(db, "chat"))
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Chat)
+  } catch (error) {
+    console.error("Error fetching chats:", error)
+    return []
+  }
+}
 
 export const getChatByOrderId = async (orderId: string): Promise<Chat | null> => {
   try {
