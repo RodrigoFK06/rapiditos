@@ -27,7 +27,7 @@ export const getAllRiders = async (): Promise<Rider[]> => {
 
 export const getActiveRiders = async (): Promise<Rider[]> => {
   try {
-    const q = query(collection(db, "rider"), where("isActive", "==", true))
+    const q = query(collection(db, "rider"), where("active_rider", "==", true))
     const ridersSnapshot = await getDocs(q)
     return ridersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Rider)
   } catch (error) {

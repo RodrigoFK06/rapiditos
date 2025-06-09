@@ -20,7 +20,9 @@ export interface Rider {
   photo_url: string
   user_name: string
   user_ref: DocumentReference
-  isActive?: boolean
+  active_rider: boolean
+  active_orders?: number
+  number_deliverys?: number
 }
 
 export interface Restaurant {
