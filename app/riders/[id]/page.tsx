@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { ArrowLeft, User, Phone, Mail } from "lucide-react"
+import { ArrowLeft, User, Phone, Mail, Check, X } from "lucide-react"
 
 export default function RiderDetailPage() {
   const params = useParams()
@@ -86,8 +86,16 @@ export default function RiderDetailPage() {
             
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Estado:</span>
-              <Badge variant={currentRider.isActive ? "default" : "secondary"}>
-                {currentRider.isActive ? "Activo" : "Inactivo"}
+              <Badge
+                variant={currentRider.active_rider ? "default" : "secondary"}
+                className="flex items-center gap-1"
+              >
+                {currentRider.active_rider ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <X className="h-3 w-3" />
+                )}
+                {currentRider.active_rider ? "Sí" : "No"}
               </Badge>
             </div>
 
@@ -161,13 +169,31 @@ export default function RiderDetailPage() {
                   Entregas totales
                 </div>
               </div>
-              
+
               <div className="text-center p-4 bg-muted rounded-lg">
                 <div className="text-2xl font-bold">
                   {currentRider.rating ? `${currentRider.rating}/5` : 'N/A'}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Calificación
+                </div>
+              </div>
+
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold">
+                  {currentRider.active_orders || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Pedidos activos
+                </div>
+              </div>
+
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold">
+                  {currentRider.number_deliverys || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Entregas realizadas
                 </div>
               </div>
             </div>

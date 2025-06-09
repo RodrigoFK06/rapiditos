@@ -82,8 +82,8 @@ export const useRiderStore = create<RiderState>((set) => ({
               : state.currentRider,
           riders: state.riders.map((r) => (r.id === id ? { ...r, ...data } : r)),
           activeRiders:
-            data.isActive !== undefined
-              ? data.isActive
+            data.active_rider !== undefined
+              ? data.active_rider
                 ? [...state.activeRiders, state.riders.find((r) => r.id === id)!].filter(Boolean)
                 : state.activeRiders.filter((r) => r.id !== id)
               : state.activeRiders,
