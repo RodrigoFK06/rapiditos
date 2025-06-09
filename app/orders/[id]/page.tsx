@@ -44,22 +44,29 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (currentOrder) {
+      // Fetch client data
       if (currentOrder.cliente_ref) {
         getDoc(doc(db, "users", currentOrder.cliente_ref)).then((snap) => {
           if (snap.exists()) setClient({ id: snap.id, ...(snap.data() as User) })
         })
       }
+      
+      // Fetch restaurant data
       if (currentOrder.restaurantref) {
         getDoc(doc(db, "restaurant", currentOrder.restaurantref)).then((snap) => {
           if (snap.exists())
             setRestaurant({ id: snap.id, ...(snap.data() as Restaurant) })
         })
       }
+      
+      // Fetch client address data
       if (currentOrder.client_address_ref) {
         getDoc(doc(db, "ClientAddress", currentOrder.client_address_ref)).then((snap) => {
           if (snap.exists()) setAddress({ id: snap.id, ...(snap.data() as ClientAddress) })
         })
       }
+      
+      // Fetch assigned rider data
       if (currentOrder.assigned_rider_ref) {
         getDoc(doc(db, "rider", currentOrder.assigned_rider_ref)).then((snap) => {
           if (snap.exists()) setAssignedRider({ id: snap.id, ...(snap.data() as Rider) })
@@ -196,7 +203,7 @@ export default function OrderDetailPage() {
 
               <div>
                 <label className="text-sm font-medium">Repartidor asignado</label>
-                <Select value={currentOrder.assigned_rider_ref || ""} onValueChange={handleRiderAssignment}>
+                <Select value={currentOrder.assigned_rider_ref?.id || ""} onValueChange={handleRiderAssignment}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Seleccionar repartidor" />
                   </SelectTrigger>

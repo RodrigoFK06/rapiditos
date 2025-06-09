@@ -1,4 +1,5 @@
 export type UserRole = "client" | "rider" | "restaurant" | "admin"
+import type { DocumentReference } from "firebase/firestore"
 
 export interface User {
   uid: string
@@ -9,7 +10,7 @@ export interface User {
   role: UserRole
   isActive: boolean
   createdAt: Date
-  rider_ref?: string
+  rider_ref?: DocumentReference
 }
 
 export interface Rider {
@@ -18,7 +19,7 @@ export interface Rider {
   phone: string
   photo_url: string
   user_name: string
-  user_ref: string
+  user_ref: DocumentReference
   isActive?: boolean
 }
 
@@ -39,7 +40,7 @@ export interface Restaurant {
   reference_place?: string
   imageUrl: string
   doc_ruc_url?: string
-  userId: string
+  userId: DocumentReference
   numDoc: string
   typeDoc: string
   yearFundation: number
@@ -71,11 +72,11 @@ export interface Order {
   id: string
   cliente_id: string
   cliente_nombre: string
-  cliente_ref: string
-  client_address_ref: string
-  assigned_rider_ref?: string
-  rider_ref?: string
-  restaurantref: string
+  cliente_ref: DocumentReference
+  client_address_ref: DocumentReference
+  assigned_rider_ref?: DocumentReference
+  rider_ref?: DocumentReference
+  restaurantref: DocumentReference
   estado: OrderStatus
   metodo_pago: string
   note?: string
@@ -94,10 +95,10 @@ export interface Order {
 
 export interface OrderDetail {
   id: string
-  orderref: string
-  platilloref: string
-  restaurantref: string
-  userref: string
+  orderref: DocumentReference
+  platilloref: DocumentReference
+  restaurantref: DocumentReference
+  userref: DocumentReference
   cantidad: number
   precio_unitario: number
   subtotal: number
@@ -114,18 +115,19 @@ export interface ClientAddress {
   business_name?: string
   delivery_options: string
   instructions_base?: string
-  clientref: string
+  clientref: DocumentReference
 }
 
 export interface Chat {
   id: string
   chatnumber: string
+  orderref?: DocumentReference
 }
 
 export interface Message {
   id: string
-  chat_ref: string
-  clientref: string
+  chat_ref: DocumentReference
+  clientref: DocumentReference
   clientext?: string
   ridertext?: string
   timestamp: Date
@@ -133,10 +135,10 @@ export interface Message {
 
 export interface AssignedRider {
   id: string
-  client_ref: string
-  rider_ref: string
-  order_ref: string
-  client_address: string
+  client_ref: DocumentReference
+  rider_ref: DocumentReference
+  order_ref: DocumentReference
+  client_address: DocumentReference
 }
 
 export interface DashboardStats {

@@ -10,6 +10,7 @@ import {
   orderBy,
   type DocumentData,
   type DocumentSnapshot,
+  type DocumentReference,
 } from "firebase/firestore"
 import { db } from "../firebase"
 import type { Order, OrderDetail, OrderStatus } from "../types"
@@ -94,31 +95,27 @@ export const updateOrderStatus = async (id: string, status: OrderStatus): Promis
   }
 }
 
-export const assignRiderToOrder = async (orderId: string, riderId: string): Promise<boolean> => {
+export const assignRiderToOrder = async (orderId: string, riderId: string): Promise<DocumentReference | null> => {
   try {
-    // Update the order
-    await updateDoc(doc(db, "orders", orderId), {
-      assigned_rider_ref: riderId,
-      asigned: true,
-    })
-
-    // Get the order details
-    const orderDoc = await getDoc(doc(db, "orders", orderId))
-    if (!orderDoc.exists()) return false
+    const orderRef = doc(db, "orders", orderId)
+    const riderRef = doc(db, "rider", riderId)
+    const orderDoc = await getDoc(orderRef)
+    if (!orderDoc.exists()) return null
     const order = orderDoc.data() as Order
-
-    // Create an entry in asigned_rider collection
-    await addDoc(collection(db, "asigned_rider"), {
+    const assignedRef = await addDoc(collection(db, "asigned_rider"), {
       client_ref: order.cliente_ref,
-      rider_ref: riderId,
-      order_ref: orderId,
+      rider_ref: riderRef,
+      order_ref: orderRef,
       client_address: order.client_address_ref,
     })
-
-    return true
+    await updateDoc(orderRef, {
+      assigned_rider_ref: assignedRef,
+      asigned: true,
+    })
+    return assignedRef
   } catch (error) {
     console.error("Error assigning rider to order:", error)
-    return false
+    return null
   }
 }
 
