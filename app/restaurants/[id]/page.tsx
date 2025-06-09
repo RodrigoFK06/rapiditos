@@ -69,9 +69,7 @@ export default function RestaurantDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-sm font-medium">Descripción:</span>
-              <span className="text-sm text-right">
-                {currentRestaurant.description}
-              </span>
+              <span className="text-sm text-right">{currentRestaurant.description}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm font-medium">Activo:</span>
@@ -137,7 +135,7 @@ export default function RestaurantDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {currentRestaurant.platillos?.map((p, index) => (
-              <div key={index} className="flex justify-between">
+              <div key={`${p.Nombre}-${index}`} className="flex justify-between">
                 <span className="text-sm font-medium">{p.Nombre}</span>
                 <span className="text-sm">S/ {p.Precio}</span>
               </div>
