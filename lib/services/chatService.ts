@@ -5,48 +5,47 @@ import {
   where,
   addDoc,
   orderBy,
-} from "firebase/firestore";
-import { db } from "../firebase";
-import type { Chat, Message } from "../types";
+  doc,
+} from "firebase/firestore"
+import { db } from "../firebase"
+import type { Chat, Message } from "../types"
 
 export const getAllChats = async (): Promise<Chat[]> => {
   try {
-    const snapshot = await getDocs(collection(db, "chat"));
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Chat);
+    const snapshot = await getDocs(collection(db, "chat"))
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Chat)
   } catch (error) {
-    console.error("Error fetching chats:", error);
-    return [];
+    console.error("Error fetching chats:", error)
+    return []
   }
-};
+}
 
-export const getChatByOrderId = async (
-  orderId: string,
-): Promise<Chat | null> => {
+export const getChatByOrderId = async (orderId: string): Promise<Chat | null> => {
   try {
-    // orderref is stored as the order id string
-    const q = query(collection(db, "chat"), where("orderref", "==", orderId));
-    const chatSnapshot = await getDocs(q);
+    // Usamos orderId como string porque en Firestore el campo 'orderref' está almacenado como string
+    const q = query(collection(db, "chat"), where("orderref", "==", orderId))
+    const chatSnapshot = await getDocs(q)
 
-    if (chatSnapshot.empty) return null;
+    if (chatSnapshot.empty) return null
 
-    const chatDoc = chatSnapshot.docs[0];
-    return { id: chatDoc.id, ...chatDoc.data() } as Chat;
+    const chatDoc = chatSnapshot.docs[0]
+    return { id: chatDoc.id, ...chatDoc.data() } as Chat
   } catch (error) {
-    console.error("Error fetching chat:", error);
-    return null;
+    console.error("Error fetching chat:", error)
+    return null
   }
-};
+}
 
 export const getMessagesByChat = async (chatId: string): Promise<Message[]> => {
   try {
     const q = query(
       collection(db, "messages"),
-      where("chat_ref", "==", chatId),
-      orderBy("timestamp", "asc"),
-    );
-    const messagesSnapshot = await getDocs(q);
+      where("chat_ref", "==", doc(db, "chat", chatId)),
+      orderBy("timestamp", "asc")
+    )
+    const messagesSnapshot = await getDocs(q)
     return messagesSnapshot.docs.map((d) => {
-      const data = d.data() as any;
+      const data = d.data() as any
       return {
         id: d.id,
         ...data,
@@ -54,27 +53,27 @@ export const getMessagesByChat = async (chatId: string): Promise<Message[]> => {
           data.timestamp instanceof Date
             ? data.timestamp
             : (data.timestamp?.toDate?.() ?? new Date(data.timestamp)),
-      } as Message;
-    });
+      } as Message
+    })
   } catch (error) {
-    console.error("Error fetching messages:", error);
-    return [];
+    console.error("Error fetching messages:", error)
+    return []
   }
-};
+}
 
 export const sendAdminMessage = async (
   chatId: string,
-  text: string,
+  text: string
 ): Promise<boolean> => {
   try {
     await addDoc(collection(db, "messages"), {
-      chat_ref: chatId,
+      chat_ref: doc(db, "chat", chatId),
       admintext: text,
       timestamp: new Date(),
-    });
-    return true;
+    })
+    return true
   } catch (error) {
-    console.error("Error sending message:", error);
-    return false;
+    console.error("Error sending message:", error)
+    return false
   }
-};
+}
