@@ -13,8 +13,8 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const activeOrdersSnapshot = await getDocs(activeOrdersQuery)
     const activeOrders = activeOrdersSnapshot.size
 
-    // Get connected riders (assuming riders with isActive=true are connected)
-    const connectedRidersQuery = query(collection(db, "rider"), where("isActive", "==", true))
+    // Get connected riders (assuming riders with active_rider=true are connected)
+    const connectedRidersQuery = query(collection(db, "rider"), where("active_rider", "==", true))
     const connectedRidersSnapshot = await getDocs(connectedRidersQuery)
     const connectedRiders = connectedRidersSnapshot.size
 

@@ -9,7 +9,7 @@ import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Eye } from "lucide-react"
+import { Eye, Check, X } from "lucide-react"
 import type { Rider } from "@/lib/types"
 
 const columns: ColumnDef<Rider>[] = [
@@ -27,10 +27,20 @@ const columns: ColumnDef<Rider>[] = [
     header: "Usuario",
   },
   {
-    accessorKey: "isActive",
+    accessorKey: "active_rider",
     header: "Activo",
     cell: ({ row }) => (
-      <Badge variant={row.getValue("isActive") ? "default" : "secondary"}>{row.getValue("isActive") ? "Sí" : "No"}</Badge>
+      <Badge
+        variant={row.getValue("active_rider") ? "default" : "secondary"}
+        className="flex items-center gap-1"
+      >
+        {row.getValue("active_rider") ? (
+          <Check className="h-3 w-3" />
+        ) : (
+          <X className="h-3 w-3" />
+        )}
+        {row.getValue("active_rider") ? "Sí" : "No"}
+      </Badge>
     ),
   },
   {
