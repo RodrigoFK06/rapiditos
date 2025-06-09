@@ -29,31 +29,33 @@ export interface Restaurant {
   addressText: string
   category: string
   city: string
-  district: string
+  district?: string
   isActive: boolean
   description: string
   managerName: string
-  managerLastName: string
+  managerLastName?: string
   restaurantPhone: string
-  restaurantEmail: string
+  restaurantEmail?: string
   webSite?: string
   reference_place?: string
   imageUrl: string
   doc_ruc_url?: string
+  doc_id_url?: string
+  doc_license_url?: string
   userId: DocumentReference
   numDoc: string
   typeDoc: string
-  yearFundation: number
-  days: RestaurantDay[]
-  categorias: string[]
-  platillos: Dish[]
+  yearFundation?: number
+  days?: RestaurantDay[]
+  categorias?: { NombreCategoria: string }[]
+  platillos?: Dish[]
 }
 
 export interface RestaurantDay {
   day: string
   isOpen: boolean
-  start: string
-  end: string
+  start?: string
+  end?: string
 }
 
 export interface Dish {
