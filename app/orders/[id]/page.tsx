@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useOrderStore } from "@/lib/stores/useOrderStore"
 import { useRiderStore } from "@/lib/stores/useRiderStore"
-import { getDoc } from "firebase/firestore"
+import { doc, getDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import type { User, Restaurant, ClientAddress, Rider } from "@/lib/types"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -43,24 +44,31 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (currentOrder) {
+      // Fetch client data
       if (currentOrder.cliente_ref) {
-        getDoc(currentOrder.cliente_ref).then((snap) => {
+        getDoc(doc(db, "users", currentOrder.cliente_ref)).then((snap) => {
           if (snap.exists()) setClient({ id: snap.id, ...(snap.data() as User) })
         })
       }
+      
+      // Fetch restaurant data
       if (currentOrder.restaurantref) {
-        getDoc(currentOrder.restaurantref).then((snap) => {
+        getDoc(doc(db, "restaurant", currentOrder.restaurantref)).then((snap) => {
           if (snap.exists())
             setRestaurant({ id: snap.id, ...(snap.data() as Restaurant) })
         })
       }
+      
+      // Fetch client address data
       if (currentOrder.client_address_ref) {
-        getDoc(currentOrder.client_address_ref).then((snap) => {
+        getDoc(doc(db, "ClientAddress", currentOrder.client_address_ref)).then((snap) => {
           if (snap.exists()) setAddress({ id: snap.id, ...(snap.data() as ClientAddress) })
         })
       }
+      
+      // Fetch assigned rider data
       if (currentOrder.assigned_rider_ref) {
-        getDoc(currentOrder.assigned_rider_ref).then((snap) => {
+        getDoc(doc(db, "rider", currentOrder.assigned_rider_ref)).then((snap) => {
           if (snap.exists()) setAssignedRider({ id: snap.id, ...(snap.data() as Rider) })
         })
       }

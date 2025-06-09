@@ -99,23 +99,19 @@ export const assignRiderToOrder = async (orderId: string, riderId: string): Prom
   try {
     const orderRef = doc(db, "orders", orderId)
     const riderRef = doc(db, "rider", riderId)
-
     const orderDoc = await getDoc(orderRef)
     if (!orderDoc.exists()) return null
     const order = orderDoc.data() as Order
-
     const assignedRef = await addDoc(collection(db, "asigned_rider"), {
       client_ref: order.cliente_ref,
       rider_ref: riderRef,
       order_ref: orderRef,
       client_address: order.client_address_ref,
     })
-
     await updateDoc(orderRef, {
       assigned_rider_ref: assignedRef,
       asigned: true,
     })
-
     return assignedRef
   } catch (error) {
     console.error("Error assigning rider to order:", error)

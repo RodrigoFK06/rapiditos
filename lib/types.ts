@@ -1,5 +1,4 @@
 export type UserRole = "client" | "rider" | "restaurant" | "admin"
-
 import type { DocumentReference } from "firebase/firestore"
 
 export interface User {
