@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useRestaurantStore } from "@/lib/stores/useRestaurantStore"
 import { collection, doc, getDocs, query, where, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import type { Dish } from "@/lib/types"
+import type { Dish, Restaurant } from "@/lib/types"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -29,17 +29,25 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { ArrowLeft } from "lucide-react"
+import { EditRestaurantModal } from "@/components/restaurants/edit-restaurant-modal"
+import { toast } from "sonner"
 
 export default function RestaurantDetailPage() {
   const params = useParams()
   const router = useRouter()
   const restaurantId = params.id as string
 
-  const { currentRestaurant, isLoading, fetchRestaurantById } = useRestaurantStore()
+  const {
+    currentRestaurant,
+    isLoading,
+    fetchRestaurantById,
+    updateRestaurantData,
+  } = useRestaurantStore()
   const [dishes, setDishes] = useState<Dish[]>([])
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [editRestaurantOpen, setEditRestaurantOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [editData, setEditData] = useState({
     nombre: "",
@@ -107,6 +115,19 @@ export default function RestaurantDetailPage() {
     }
   }
 
+  const handleRestaurantUpdate = async (data: Partial<Restaurant>) => {
+    if (!currentRestaurant) return false
+
+    const success = await updateRestaurantData(currentRestaurant.id, data)
+    if (success) {
+      toast.success("Restaurante actualizado")
+      fetchRestaurantById(currentRestaurant.id)
+    } else {
+      toast.error("Error al actualizar el restaurante")
+    }
+    return success
+  }
+
   if (isLoading || !currentRestaurant) {
     return (
       <DashboardLayout>
@@ -120,14 +141,17 @@ export default function RestaurantDetailPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{currentRestaurant.name}</h1>
-            <p className="text-muted-foreground">Información del restaurante</p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{currentRestaurant.name}</h1>
+              <p className="text-muted-foreground">Información del restaurante</p>
+            </div>
           </div>
+          <Button onClick={() => setEditRestaurantOpen(true)}>Editar restaurante</Button>
         </div>
 
         {/* General Information Card */}
@@ -445,6 +469,12 @@ export default function RestaurantDetailPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <EditRestaurantModal
+          open={editRestaurantOpen}
+          onOpenChange={setEditRestaurantOpen}
+          restaurant={currentRestaurant}
+          onSave={handleRestaurantUpdate}
+        />
       </div>
     </DashboardLayout>
   )

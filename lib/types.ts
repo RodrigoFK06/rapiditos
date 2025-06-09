@@ -10,6 +10,7 @@ export interface User {
   role: UserRole
   isActive: boolean
   createdAt: Date
+  address?: DocumentReference
   rider_ref?: DocumentReference
 }
 
@@ -20,7 +21,9 @@ export interface Rider {
   photo_url: string
   user_name: string
   user_ref: DocumentReference
-  isActive?: boolean
+  active_rider: boolean
+  active_orders?: number
+  number_deliverys?: number
 }
 
 export interface Restaurant {
@@ -156,4 +159,29 @@ export interface DashboardStats {
   totalOrders: number
   restaurantCount: number
   userCount: number
+}
+export interface OrdersStats {
+  total: number
+  completed: number
+  pending: number
+  canceled: number
+  perDay: { date: string; count: number }[]
+  paymentMethods: { name: string; count: number }[]
+}
+
+export interface TopDish {
+  name: string
+  count: number
+  image?: string
+}
+
+export interface RidersStats {
+  totalActive: number
+  totalDeliveries: number
+  topRiders: { id: string; display_name: string; phone: string; count: number }[]
+}
+
+export interface RestaurantsStats {
+  totalActive: number
+  topRestaurants: { id: string; name: string; phone: string; count: number }[]
 }
