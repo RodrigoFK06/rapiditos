@@ -60,12 +60,18 @@ export interface RestaurantDay {
 
 export interface Dish {
   id?: string
-  Nombre: string
-  Descripcion: string
-  Precio: number
-  Activo: boolean
-  Imagen: string
-  Categoria: string
+  Nombre?: string
+  Descripcion?: string
+  Precio?: number
+  Activo?: boolean
+  Imagen?: string
+  Categoria?: string
+  nombre?: string
+  descripcion?: string
+  precio?: number
+  categoria?: string
+  imagen?: string
+  activo?: boolean
 }
 
 export type OrderStatus = "Nuevo" | "Preparando" | "Enviando" | "Completado"
