@@ -1,12 +1,42 @@
-import { collection, doc, getDoc, getDocs, query, where, updateDoc, addDoc, orderBy } from "firebase/firestore"
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  addDoc,
+  orderBy,
+  type DocumentData,
+  type DocumentSnapshot,
+  type DocumentReference,
+} from "firebase/firestore"
 import { db } from "../firebase"
 import type { Order, OrderDetail, OrderStatus } from "../types"
+import { Timestamp } from "firebase/firestore"
+
+const mapOrder = (docSnap: DocumentSnapshot<DocumentData>): Order => {
+  const data = docSnap.data() as DocumentData
+  return {
+    id: docSnap.id,
+    ...data,
+    fecha_creacion:
+      data.fecha_creacion instanceof Timestamp
+        ? data.fecha_creacion.toDate()
+        : data.fecha_creacion,
+    fecha_entrega:
+      data.fecha_entrega instanceof Timestamp
+        ? data.fecha_entrega.toDate()
+        : data.fecha_entrega,
+  } as Order
+}
 
 export const getOrderById = async (id: string): Promise<Order | null> => {
   try {
     const orderDoc = await getDoc(doc(db, "orders", id))
     if (orderDoc.exists()) {
-      return { id: orderDoc.id, ...orderDoc.data() } as Order
+      return mapOrder(orderDoc)
     }
     return null
   } catch (error) {
@@ -19,7 +49,7 @@ export const getAllOrders = async (): Promise<Order[]> => {
   try {
     const q = query(collection(db, "orders"), orderBy("fecha_creacion", "desc"))
     const ordersSnapshot = await getDocs(q)
-    return ordersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Order)
+    return ordersSnapshot.docs.map((d) => mapOrder(d))
   } catch (error) {
     console.error("Error fetching orders:", error)
     return []
@@ -34,7 +64,7 @@ export const getActiveOrders = async (): Promise<Order[]> => {
       where("estado", "in", ["Nuevo", "Preparando", "Enviando"]),
     )
     const ordersSnapshot = await getDocs(q)
-    return ordersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Order)
+    return ordersSnapshot.docs.map((d) => mapOrder(d))
   } catch (error) {
     console.error("Error fetching active orders:", error)
     return []
@@ -45,7 +75,7 @@ export const getOrdersByStatus = async (status: OrderStatus): Promise<Order[]> =
   try {
     const q = query(collection(db, "orders"), where("estado", "==", status))
     const ordersSnapshot = await getDocs(q)
-    return ordersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Order)
+    return ordersSnapshot.docs.map((d) => mapOrder(d))
   } catch (error) {
     console.error(`Error fetching ${status} orders:`, error)
     return []
@@ -65,37 +95,38 @@ export const updateOrderStatus = async (id: string, status: OrderStatus): Promis
   }
 }
 
-export const assignRiderToOrder = async (orderId: string, riderId: string): Promise<boolean> => {
+export const assignRiderToOrder = async (orderId: string, riderId: string): Promise<DocumentReference | null> => {
   try {
-    // Update the order
-    await updateDoc(doc(db, "orders", orderId), {
-      assigned_rider_ref: riderId,
-      asigned: true,
-    })
+    const orderRef = doc(db, "orders", orderId)
+    const riderRef = doc(db, "rider", riderId)
 
-    // Get the order details
-    const orderDoc = await getDoc(doc(db, "orders", orderId))
-    if (!orderDoc.exists()) return false
+    const orderDoc = await getDoc(orderRef)
+    if (!orderDoc.exists()) return null
     const order = orderDoc.data() as Order
 
-    // Create an entry in asigned_rider collection
-    await addDoc(collection(db, "asigned_rider"), {
+    const assignedRef = await addDoc(collection(db, "asigned_rider"), {
       client_ref: order.cliente_ref,
-      rider_ref: riderId,
-      order_ref: orderId,
+      rider_ref: riderRef,
+      order_ref: orderRef,
       client_address: order.client_address_ref,
     })
 
-    return true
+    await updateDoc(orderRef, {
+      assigned_rider_ref: assignedRef,
+      asigned: true,
+    })
+
+    return assignedRef
   } catch (error) {
     console.error("Error assigning rider to order:", error)
-    return false
+    return null
   }
 }
 
 export const getOrderDetails = async (orderId: string): Promise<OrderDetail[]> => {
   try {
-    const q = query(collection(db, "orderdetails"), where("orderref", "==", orderId))
+    const orderRef = doc(db, "orders", orderId)
+    const q = query(collection(db, "orderdetails"), where("orderref", "==", orderRef))
     const detailsSnapshot = await getDocs(q)
     return detailsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as OrderDetail)
   } catch (error) {

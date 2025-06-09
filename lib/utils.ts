@@ -12,15 +12,11 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+import { format } from "date-fns"
+
 export function formatDate(date: Date | string): string {
   const dateObj = typeof date === "string" ? new Date(date) : date
-  return new Intl.DateTimeFormat("es-PE", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(dateObj)
+  return format(dateObj, "dd/MM/yyyy HH:mm")
 }
 
 export function formatTime(date: Date | string): string {

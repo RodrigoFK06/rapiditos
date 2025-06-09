@@ -102,23 +102,23 @@ export const useOrderStore = create<OrderState>((set) => ({
   assignRider: async (orderId: string, riderId: string) => {
     set({ isLoading: true, error: null })
     try {
-      const success = await assignRiderToOrder(orderId, riderId)
-      if (success) {
+      const assignedRef = await assignRiderToOrder(orderId, riderId)
+      if (assignedRef) {
         // Refresh the order data
         await getOrderById(orderId).then((order) => {
           set((state) => ({
             currentOrder: order,
             orders: state.orders.map((o) =>
-              o.id === orderId ? { ...o, assigned_rider_ref: riderId, asigned: true } : o,
+              o.id === orderId ? { ...o, assigned_rider_ref: assignedRef, asigned: true } : o,
             ),
             activeOrders: state.activeOrders.map((o) =>
-              o.id === orderId ? { ...o, assigned_rider_ref: riderId, asigned: true } : o,
+              o.id === orderId ? { ...o, assigned_rider_ref: assignedRef, asigned: true } : o,
             ),
           }))
         })
       }
       set({ isLoading: false })
-      return success
+      return Boolean(assignedRef)
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Error al asignar repartidor",

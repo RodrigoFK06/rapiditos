@@ -48,7 +48,8 @@ export const updateRider = async (id: string, data: Partial<Rider>): Promise<boo
 
 export const getAssignedOrdersByRider = async (riderId: string): Promise<AssignedRider[]> => {
   try {
-    const q = query(collection(db, "asigned_rider"), where("rider_ref", "==", riderId))
+    const riderRef = doc(db, "rider", riderId)
+    const q = query(collection(db, "asigned_rider"), where("rider_ref", "==", riderRef))
     const assignmentsSnapshot = await getDocs(q)
     return assignmentsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as AssignedRider)
   } catch (error) {
