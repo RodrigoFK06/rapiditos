@@ -5,9 +5,24 @@ import {
   where,
   addDoc,
   orderBy,
-  doc, // <- conservar esta línea
-} from "firebase/firestore"
-import { db } from "../firebase"
+    // orderref is stored as the order id string
+    const q = query(collection(db, "chat"), where("orderref", "==", orderId))
+    const q = query(
+      collection(db, "messages"),
+      where("chat_ref", "==", chatId),
+      orderBy("timestamp", "asc"),
+    )
+    return messagesSnapshot.docs.map((d) => {
+      const data = d.data() as any
+      return {
+        id: d.id,
+        ...data,
+        timestamp:
+          data.timestamp instanceof Date
+            ? data.timestamp
+            : data.timestamp?.toDate?.() ?? new Date(data.timestamp),
+      } as Message
+    })
 import type { Chat, Message } from "../types"
 
 export const getAllChats = async (): Promise<Chat[]> => {
