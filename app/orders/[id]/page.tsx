@@ -46,14 +46,14 @@ export default function OrderDetailPage() {
     if (currentOrder) {
       // Fetch client data
       if (currentOrder.cliente_ref) {
-        getDoc(doc(db, "users", currentOrder.cliente_ref)).then((snap) => {
+        getDoc(currentOrder.cliente_ref).then((snap) => {
           if (snap.exists()) setClient({ id: snap.id, ...(snap.data() as User) })
         })
       }
       
       // Fetch restaurant data
       if (currentOrder.restaurantref) {
-        getDoc(doc(db, "restaurant", currentOrder.restaurantref)).then((snap) => {
+        getDoc(currentOrder.restaurantref).then((snap) => {
           if (snap.exists())
             setRestaurant({ id: snap.id, ...(snap.data() as Restaurant) })
         })
@@ -61,15 +61,17 @@ export default function OrderDetailPage() {
       
       // Fetch client address data
       if (currentOrder.client_address_ref) {
-        getDoc(doc(db, "ClientAddress", currentOrder.client_address_ref)).then((snap) => {
-          if (snap.exists()) setAddress({ id: snap.id, ...(snap.data() as ClientAddress) })
+        getDoc(currentOrder.client_address_ref).then((snap) => {
+          if (snap.exists())
+            setAddress({ id: snap.id, ...(snap.data() as ClientAddress) })
         })
       }
       
       // Fetch assigned rider data
       if (currentOrder.assigned_rider_ref) {
-        getDoc(doc(db, "rider", currentOrder.assigned_rider_ref)).then((snap) => {
-          if (snap.exists()) setAssignedRider({ id: snap.id, ...(snap.data() as Rider) })
+        getDoc(currentOrder.assigned_rider_ref).then((snap) => {
+          if (snap.exists())
+            setAssignedRider({ id: snap.id, ...(snap.data() as Rider) })
         })
       }
     }
