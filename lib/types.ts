@@ -160,3 +160,28 @@ export interface DashboardStats {
   restaurantCount: number
   userCount: number
 }
+export interface OrdersStats {
+  total: number
+  completed: number
+  pending: number
+  canceled: number
+  perDay: { date: string; count: number }[]
+  paymentMethods: { name: string; count: number }[]
+}
+
+export interface TopDish {
+  name: string
+  count: number
+  image?: string
+}
+
+export interface RidersStats {
+  totalActive: number
+  totalDeliveries: number
+  topRiders: { id: string; display_name: string; phone: string; count: number }[]
+}
+
+export interface RestaurantsStats {
+  totalActive: number
+  topRestaurants: { id: string; name: string; phone: string; count: number }[]
+}
