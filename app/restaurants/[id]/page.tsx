@@ -40,6 +40,7 @@ export default function RestaurantDetailPage() {
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [editData, setEditData] = useState({
     nombre: "",
     descripcion: "",
@@ -61,6 +62,50 @@ export default function RestaurantDetailPage() {
       })
     }
   }, [restaurantId, fetchRestaurantById])
+
+  const handleEditDish = async () => {
+    if (!selectedDish?.id) return
+    
+    setIsUpdating(true)
+    try {
+      await updateDoc(doc(db, "platillos", selectedDish.id), {
+        nombre: editData.nombre,
+        descripcion: editData.descripcion,
+        precio: editData.precio,
+        categoria: editData.categoria,
+        activo: editData.activo,
+        imagen: editData.imagen,
+      })
+      
+      // Update local state
+      setDishes((prev) =>
+        prev.map((d) =>
+          d.id === selectedDish.id
+            ? {
+                ...d,
+                nombre: editData.nombre,
+                Nombre: editData.nombre,
+                descripcion: editData.descripcion,
+                Descripcion: editData.descripcion,
+                precio: editData.precio,
+                Precio: editData.precio,
+                categoria: editData.categoria,
+                Categoria: editData.categoria,
+                activo: editData.activo,
+                Activo: editData.activo,
+                imagen: editData.imagen,
+                Imagen: editData.imagen,
+              }
+            : d
+        )
+      )
+      setEditOpen(false)
+    } catch (err) {
+      console.error("Error updating dish:", err)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   if (isLoading || !currentRestaurant) {
     return (
@@ -91,117 +136,117 @@ export default function RestaurantDetailPage() {
             <CardTitle>Datos Generales</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm font-medium">Ciudad:</span>
-            <span className="text-sm">{currentRestaurant.city}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium">Distrito:</span>
-            <span className="text-sm">{currentRestaurant.district ?? "-"}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium">Categoría:</span>
-            <span className="text-sm">{currentRestaurant.category}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium">Dirección:</span>
-            <span className="text-sm">{currentRestaurant.addressText}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium">Teléfono:</span>
-            <span className="text-sm">{currentRestaurant.restaurantPhone}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium">Encargado:</span>
-            <span className="text-sm">{currentRestaurant.managerName}</span>
-          </div>
-          {currentRestaurant.managerLastName && (
             <div className="flex justify-between">
-              <span className="text-sm font-medium">Apellido Encargado:</span>
-              <span className="text-sm">{currentRestaurant.managerLastName}</span>
+              <span className="text-sm font-medium">Ciudad:</span>
+              <span className="text-sm">{currentRestaurant.city}</span>
             </div>
-          )}
-          {currentRestaurant.restaurantEmail && (
             <div className="flex justify-between">
-              <span className="text-sm font-medium">Email:</span>
-              <span className="text-sm">{currentRestaurant.restaurantEmail}</span>
+              <span className="text-sm font-medium">Distrito:</span>
+              <span className="text-sm">{currentRestaurant.district ?? "-"}</span>
             </div>
-          )}
-          {currentRestaurant.webSite && (
             <div className="flex justify-between">
-              <span className="text-sm font-medium">Sitio web:</span>
-              <a
-                href={currentRestaurant.webSite}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary underline"
-              >
-                {currentRestaurant.webSite}
-              </a>
+              <span className="text-sm font-medium">Categoría:</span>
+              <span className="text-sm">{currentRestaurant.category}</span>
             </div>
-          )}
-          <div className="flex justify-between">
-            <span className="text-sm font-medium">Descripción:</span>
-            <span className="text-sm text-right">{currentRestaurant.description}</span>
-          </div>
-          {currentRestaurant.reference_place && (
             <div className="flex justify-between">
-              <span className="text-sm font-medium">Referencia:</span>
-              <span className="text-sm">{currentRestaurant.reference_place}</span>
+              <span className="text-sm font-medium">Dirección:</span>
+              <span className="text-sm">{currentRestaurant.addressText}</span>
             </div>
-          )}
-          <div className="flex justify-between">
-            <span className="text-sm font-medium">Activo:</span>
-            <Badge variant={currentRestaurant.isActive ? "default" : "secondary"}>
-              {currentRestaurant.isActive ? "Sí" : "No"}
-            </Badge>
-          </div>
-          {typeof currentRestaurant.yearFundation !== "undefined" && (
             <div className="flex justify-between">
-              <span className="text-sm font-medium">Año de Fundación:</span>
-              <span className="text-sm">{currentRestaurant.yearFundation}</span>
+              <span className="text-sm font-medium">Teléfono:</span>
+              <span className="text-sm">{currentRestaurant.restaurantPhone}</span>
             </div>
-          )}
+            <div className="flex justify-between">
+              <span className="text-sm font-medium">Encargado:</span>
+              <span className="text-sm">{currentRestaurant.managerName}</span>
+            </div>
+            {currentRestaurant.managerLastName && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Apellido Encargado:</span>
+                <span className="text-sm">{currentRestaurant.managerLastName}</span>
+              </div>
+            )}
+            {currentRestaurant.restaurantEmail && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Email:</span>
+                <span className="text-sm">{currentRestaurant.restaurantEmail}</span>
+              </div>
+            )}
+            {currentRestaurant.webSite && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Sitio web:</span>
+                <a
+                  href={currentRestaurant.webSite}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline"
+                >
+                  {currentRestaurant.webSite}
+                </a>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-sm font-medium">Descripción:</span>
+              <span className="text-sm text-right">{currentRestaurant.description}</span>
+            </div>
+            {currentRestaurant.reference_place && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Referencia:</span>
+                <span className="text-sm">{currentRestaurant.reference_place}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-sm font-medium">Activo:</span>
+              <Badge variant={currentRestaurant.isActive ? "default" : "secondary"}>
+                {currentRestaurant.isActive ? "Sí" : "No"}
+              </Badge>
+            </div>
+            {typeof currentRestaurant.yearFundation !== "undefined" && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Año de Fundación:</span>
+                <span className="text-sm">{currentRestaurant.yearFundation}</span>
+              </div>
+            )}
 
-          {currentRestaurant.doc_ruc_url && (
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Documento RUC:</span>
-              <a
-                href={currentRestaurant.doc_ruc_url}
+            {currentRestaurant.doc_ruc_url && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Documento RUC:</span>
+                <a
+                  href={currentRestaurant.doc_ruc_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary underline"
                 >
                   Ver documento
-              </a>
-            </div>
-          )}
-          {currentRestaurant.doc_id_url && (
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Documento ID:</span>
-              <a
-                href={currentRestaurant.doc_id_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary underline"
-              >
-                Ver documento
-              </a>
-            </div>
-          )}
-          {currentRestaurant.doc_license_url && (
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Licencia:</span>
-              <a
-                href={currentRestaurant.doc_license_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary underline"
-              >
-                Ver documento
-              </a>
-            </div>
-          )}
+                </a>
+              </div>
+            )}
+            {currentRestaurant.doc_id_url && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Documento ID:</span>
+                <a
+                  href={currentRestaurant.doc_id_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline"
+                >
+                  Ver documento
+                </a>
+              </div>
+            )}
+            {currentRestaurant.doc_license_url && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Licencia:</span>
+                <a
+                  href={currentRestaurant.doc_license_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline"
+                >
+                  Ver documento
+                </a>
+              </div>
+            )}
 
             {currentRestaurant.imageUrl && (
               <div className="mt-4">
@@ -299,6 +344,8 @@ export default function RestaurantDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* View Dish Dialog */}
         <Dialog open={viewOpen} onOpenChange={setViewOpen}>
           <DialogContent>
             <DialogHeader>
@@ -326,6 +373,8 @@ export default function RestaurantDetailPage() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Edit Dish Dialog */}
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent>
             <DialogHeader>
@@ -388,45 +437,10 @@ export default function RestaurantDetailPage() {
             </div>
             <DialogFooter>
               <Button
-                onClick={async () => {
-                  if (!selectedDish?.id) return
-                  try {
-                    await updateDoc(doc(db, "platillos", selectedDish.id), {
-                      nombre: editData.nombre,
-                      descripcion: editData.descripcion,
-                      precio: editData.precio,
-                      categoria: editData.categoria,
-                      activo: editData.activo,
-                      imagen: editData.imagen,
-                    })
-                    setDishes((prev) =>
-                      prev.map((d) =>
-                        d.id === selectedDish.id
-                          ? {
-                              ...d,
-                              nombre: editData.nombre,
-                              Nombre: editData.nombre,
-                              descripcion: editData.descripcion,
-                              Descripcion: editData.descripcion,
-                              precio: editData.precio,
-                              Precio: editData.precio,
-                              categoria: editData.categoria,
-                              Categoria: editData.categoria,
-                              activo: editData.activo,
-                              Activo: editData.activo,
-                              imagen: editData.imagen,
-                              Imagen: editData.imagen,
-                            }
-                          : d
-                      )
-                    )
-                    setEditOpen(false)
-                  } catch (err) {
-                    console.error(err)
-                  }
-                }}
+                onClick={handleEditDish}
+                disabled={isUpdating}
               >
-                Guardar cambios
+                {isUpdating ? "Guardando..." : "Guardar cambios"}
               </Button>
             </DialogFooter>
           </DialogContent>
