@@ -10,6 +10,7 @@ export interface User {
   role: UserRole
   isActive: boolean
   createdAt: Date
+  address?: DocumentReference
   rider_ref?: DocumentReference
 }
 
