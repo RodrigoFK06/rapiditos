@@ -23,6 +23,11 @@ export function TopDishesCard({ dishes }: { dishes: TopDish[] }) {
         ) : (
           <p className="text-sm text-muted-foreground">No hay datos de platillos.</p>
         )}
+        {dishes.length > 0 && (
+          <div className="text-xs text-muted-foreground">
+            Ingresos totales: {dishes.reduce((sum, d) => sum + (d.revenue || 0), 0).toFixed(2)}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
