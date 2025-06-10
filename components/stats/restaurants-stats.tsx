@@ -17,9 +17,12 @@ export function RestaurantsStatsCard({ data }: { data: RestaurantsStats }) {
         {data.topRestaurants.length > 0 ? (
           <div className="space-y-2">
             {data.topRestaurants.map((r) => (
-              <div key={r.id} className="flex justify-between">
-                <span className="text-sm">{r.name}</span>
-                <Badge variant="outline">{r.count}</Badge>
+              <div key={r.id} className="flex justify-between text-sm">
+                <span>{r.name}</span>
+                <span>
+                  {r.orders} pedidos / S/.{r.revenue.toFixed(2)}
+                  {r.topDish && <span className="ml-2 text-xs text-muted-foreground">{r.topDish}</span>}
+                </span>
               </div>
             ))}
           </div>

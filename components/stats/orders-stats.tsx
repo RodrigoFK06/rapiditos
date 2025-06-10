@@ -1,5 +1,5 @@
 "use client"
-import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line } from "recharts"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import type { OrdersStats } from "@/lib/types"
 import { ChartTooltipContent, ChartLegendContent, ChartContainer } from "@/components/ui/chart"
@@ -36,6 +36,16 @@ export function OrdersStatsCard({ data }: { data: OrdersStats }) {
             <div className="text-sm text-muted-foreground">Cancelados</div>
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold">{data.totalRevenue.toFixed(2)}</div>
+            <div className="text-sm text-muted-foreground">Ingresos</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{(data.completionRate * 100).toFixed(1)}%</div>
+            <div className="text-sm text-muted-foreground">Tasa de conversión</div>
+          </div>
+        </div>
         {data.perDay.length > 0 ? (
           <ChartContainer id="orders-bar" config={{}} className="h-64">
             <BarChart data={data.perDay}>
@@ -47,6 +57,16 @@ export function OrdersStatsCard({ data }: { data: OrdersStats }) {
           </ChartContainer>
         ) : (
           <p className="text-sm text-muted-foreground">No hay datos de los últimos días.</p>
+        )}
+        {data.perDay30 && data.perDay30.length > 0 && (
+          <ChartContainer id="orders-line" config={{}} className="h-64">
+            <LineChart data={data.perDay30}>
+              <XAxis dataKey="date" />
+              <YAxis allowDecimals={false} />
+              <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" />
+              <ChartTooltipContent />
+            </LineChart>
+          </ChartContainer>
         )}
         {data.paymentMethods.length > 0 ? (
           <ChartContainer id="payment-pie" config={{}} className="h-64">

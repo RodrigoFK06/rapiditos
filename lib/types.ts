@@ -160,12 +160,24 @@ export interface DashboardStats {
   restaurantCount: number
   userCount: number
 }
+
+export interface DashboardKpis {
+  incomeToday: number
+  incomeWeek: number
+  incomeMonth: number
+  newUsersToday: number
+  conversionRate: number
+  avgDeliveryMinutes: number
+}
 export interface OrdersStats {
   total: number
   completed: number
   pending: number
   canceled: number
+  totalRevenue: number
+  completionRate: number
   perDay: { date: string; count: number }[]
+  perDay30?: { date: string; count: number }[]
   paymentMethods: { name: string; count: number }[]
 }
 
@@ -173,6 +185,7 @@ export interface TopDish {
   name: string
   count: number
   image?: string
+  revenue?: number
 }
 
 export interface RidersStats {
@@ -183,5 +196,17 @@ export interface RidersStats {
 
 export interface RestaurantsStats {
   totalActive: number
-  topRestaurants: { id: string; name: string; phone: string; count: number }[]
+  topRestaurants: {
+    id: string
+    name: string
+    phone: string
+    orders: number
+    revenue: number
+    topDish?: string
+  }[]
+}
+
+export interface TimeStats {
+  perDay: { date: string; avg: number }[]
+  perHour: { hour: string; count: number }[]
 }
