@@ -1,45 +1,49 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { doc, getDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import type { User } from "@/lib/types"
+import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { ArrowLeft } from "lucide-react"
+import { useUserDetail } from "@/hooks/useUserDetail"
 
 export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
   const refId = decodeURIComponent(params.refId as string)
 
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const snap = await getDoc(doc(db, refId))
-        if (snap.exists()) {
-          const data = snap.data() as User
-          setUser({ ...data, uid: snap.id })
-        }
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    if (refId) fetchUser()
-  }, [refId])
+  const { user, isLoading, error, refetch } = useUserDetail(refId)
 
   if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <LoadingSpinner size="lg" />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-3xl font-bold tracking-tight">Error</h1>
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-destructive">{error}</p>
+              <Button onClick={refetch} className="mt-4">
+                Reintentar
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     )
@@ -53,9 +57,8 @@ export default function UserDetailPage() {
             <Button variant="outline" size="icon" onClick={() => router.back()}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-3xl font-bold tracking-tight">Usuario</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Usuario no encontrado</h1>
           </div>
-          <p>Usuario no encontrado.</p>
         </div>
       </DashboardLayout>
     )

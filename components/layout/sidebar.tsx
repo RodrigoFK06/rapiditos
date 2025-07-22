@@ -14,6 +14,7 @@ import {
   Bike,
   MessageSquare,
   FileCheck,
+  DollarSign,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -68,6 +69,12 @@ export function Sidebar() {
       icon: FileCheck,
       href: "/documents",
       active: pathname === "/documents" || pathname.startsWith("/documents/"),
+    },
+    {
+      label: "Tasas de Cambio",
+      icon: DollarSign,
+      href: "/exchange-rates",
+      active: pathname === "/exchange-rates" || pathname.startsWith("/exchange-rates/"),
     },
     {
       label: "Estadísticas",

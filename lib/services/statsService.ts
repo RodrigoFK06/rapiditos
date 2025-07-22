@@ -1,4 +1,13 @@
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore"
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  Timestamp,
+  getCountFromServer,
+  limit,
+  orderBy
+} from "firebase/firestore"
 import { startOfDay, startOfWeek, startOfMonth, subDays, format } from "date-fns"
 import { db } from "../firebase"
 import type {
@@ -20,41 +29,96 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
     const week = startOfWeek(new Date(), { weekStartsOn: 1 })
     const month = startOfMonth(new Date())
 
-    const ordersSnapshot = await getDocs(collection(db, "orders"))
-    let incomeToday = 0
-    let incomeWeek = 0
-    let incomeMonth = 0
-    let total = 0
-    let completed = 0
-    let deliveryTimeSum = 0
+    // Consultas paralelas optimizadas con filtros
+    const [
+      completedTodaySnapshot,
+      completedWeekSnapshot,
+      completedMonthSnapshot,
+      newUsersSnapshot,
+      activeOrdersCount,
+      recentDeliveredOrders
+    ] = await Promise.all([
+      // Órdenes completadas hoy
+      getDocs(query(
+        collection(db, "orders"),
+        where("estado", "==", "Completado"),
+        where("fecha_creacion", ">=", Timestamp.fromDate(today))
+      )),
+      
+      // Órdenes completadas esta semana
+      getDocs(query(
+        collection(db, "orders"),
+        where("estado", "==", "Completado"),
+        where("fecha_creacion", ">=", Timestamp.fromDate(week))
+      )),
+      
+      // Órdenes completadas este mes
+      getDocs(query(
+        collection(db, "orders"),
+        where("estado", "==", "Completado"),
+        where("fecha_creacion", ">=", Timestamp.fromDate(month))
+      )),
+      
+      // Nuevos usuarios hoy
+      getCountFromServer(query(
+        collection(db, "users"),
+        where("createdAt", ">=", Timestamp.fromDate(today))
+      )),
+      
+      // Órdenes activas
+      getCountFromServer(query(
+        collection(db, "orders"),
+        where("activo", "==", true),
+        where("estado", "in", ["Nuevo", "Preparando", "Enviando"])
+      )),
+      
+      // Órdenes entregadas recientes para calcular tiempo promedio
+      getDocs(query(
+        collection(db, "orders"),
+        where("estado", "==", "Completado"),
+        where("fecha_creacion", ">=", Timestamp.fromDate(subDays(new Date(), 7))),
+        limit(100)
+      ))
+    ])
 
-    ordersSnapshot.forEach((doc) => {
-      const data = doc.data() as Order
-      total++
-      const created = (data.fecha_creacion instanceof Timestamp
-        ? data.fecha_creacion.toDate()
-        : data.fecha_creacion) as Date
-      if (data.estado === "Completado") {
-        completed++
-        if (created >= today) incomeToday += data.total || 0
-        if (created >= week) incomeWeek += data.total || 0
-        if (created >= month) incomeMonth += data.total || 0
-        if (data.fecha_entrega) {
-          const delivered = (data.fecha_entrega instanceof Timestamp
-            ? data.fecha_entrega.toDate()
-            : data.fecha_entrega) as Date
-          deliveryTimeSum += (delivered.getTime() - created.getTime()) / 60000
+    // Calcular ingresos
+    const incomeToday = completedTodaySnapshot.docs.reduce((sum, doc) => {
+      const data = doc.data()
+      return sum + (data.total || 0)
+    }, 0)
+
+    const incomeWeek = completedWeekSnapshot.docs.reduce((sum, doc) => {
+      const data = doc.data()
+      return sum + (data.total || 0)
+    }, 0)
+
+    const incomeMonth = completedMonthSnapshot.docs.reduce((sum, doc) => {
+      const data = doc.data()
+      return sum + (data.total || 0)
+    }, 0)
+
+    // Calcular tiempo promedio de entrega
+    let avgDeliveryMinutes = 0
+    if (recentDeliveredOrders.docs.length > 0) {
+      const totalMinutes = recentDeliveredOrders.docs.reduce((sum, doc) => {
+        const data = doc.data()
+        if (data.fecha_entrega && data.fecha_creacion) {
+          const deliveryTime = data.fecha_entrega instanceof Timestamp 
+            ? data.fecha_entrega.toDate() 
+            : new Date(data.fecha_entrega)
+          const orderTime = data.fecha_creacion instanceof Timestamp 
+            ? data.fecha_creacion.toDate() 
+            : new Date(data.fecha_creacion)
+          const diffMinutes = (deliveryTime.getTime() - orderTime.getTime()) / (1000 * 60)
+          return sum + diffMinutes
         }
-      }
-    })
+        return sum
+      }, 0)
+      avgDeliveryMinutes = totalMinutes / recentDeliveredOrders.docs.length
+    }
 
-    const usersSnapshot = await getDocs(
-      query(collection(db, "users"), where("createdAt", ">=", today))
-    )
-    const newUsersToday = usersSnapshot.size
-
-    const conversionRate = total ? completed / total : 0
-    const avgDeliveryMinutes = completed ? deliveryTimeSum / completed : 0
+    const newUsersToday = newUsersSnapshot.data().count
+    const conversionRate = newUsersToday > 0 ? completedTodaySnapshot.docs.length / newUsersToday : 0
 
     return {
       incomeToday,

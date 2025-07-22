@@ -210,3 +210,11 @@ export interface TimeStats {
   perDay: { date: string; avg: number }[]
   perHour: { hour: string; count: number }[]
 }
+
+export interface ExchangeRate {
+  id: string
+  base_currency: string
+  target_currency: string
+  rate: number
+  created_at: Date
+}
