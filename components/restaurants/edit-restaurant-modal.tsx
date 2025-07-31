@@ -42,6 +42,12 @@ export function EditRestaurantModal({ open, onOpenChange, restaurant, onSave }: 
     doc_ruc_url: "",
     doc_id_url: "",
     doc_license_url: "",
+    // Campos adicionales según esquema Firestore
+    numDoc: "",
+    typeDoc: "",
+    instagram: "",
+    facebook: "",
+    restaurant_zone: "",
   })
   const [saving, setSaving] = useState(false)
 
@@ -54,7 +60,7 @@ export function EditRestaurantModal({ open, onOpenChange, restaurant, onSave }: 
         district: restaurant.district ?? "",
         city: restaurant.city ?? "",
         category: restaurant.category ?? "",
-        restaurantPhone: restaurant.restaurantPhone ?? "",
+        restaurantPhone: restaurant.restaurantPhone ? String(restaurant.restaurantPhone) : "",
         restaurantEmail: restaurant.restaurantEmail ?? "",
         webSite: restaurant.webSite ?? "",
         managerName: restaurant.managerName ?? "",
@@ -65,17 +71,25 @@ export function EditRestaurantModal({ open, onOpenChange, restaurant, onSave }: 
         doc_ruc_url: restaurant.doc_ruc_url ?? "",
         doc_id_url: restaurant.doc_id_url ?? "",
         doc_license_url: restaurant.doc_license_url ?? "",
+        // Campos adicionales según esquema Firestore
+        numDoc: restaurant.numDoc ? String(restaurant.numDoc) : "",
+        typeDoc: restaurant.typeDoc ?? "",
+        instagram: restaurant.instagram ?? "",
+        facebook: restaurant.facebook ?? "",
+        restaurant_zone: restaurant.restaurant_zone ?? "",
       })
     }
   }, [restaurant])
 
   const handleSave = async () => {
     setSaving(true)
-    const { yearFundation, ...rest } = form
+    const { yearFundation, restaurantPhone, numDoc, ...rest } = form
     const data: Partial<Restaurant> = {
       ...rest,
-      yearFundation: yearFundation ? Number(yearFundation) : undefined,
-    }
+      yearFundation: yearFundation || undefined, // ✅ String
+      restaurantPhone: restaurantPhone ? parseInt(restaurantPhone, 10) : undefined, // ✅ Integer
+      numDoc: numDoc ? parseInt(numDoc, 10) : undefined, // ✅ Integer
+    } as Partial<Restaurant>
     const success = await onSave(data)
     setSaving(false)
     if (success) {

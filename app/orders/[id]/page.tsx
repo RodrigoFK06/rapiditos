@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { ArrowLeft, User } from "lucide-react"
+import { ArrowLeft, UserIcon } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import type { OrderStatus } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -47,7 +47,7 @@ export default function OrderDetailPage() {
       // Fetch client data
       if (currentOrder.cliente_ref) {
         getDoc(currentOrder.cliente_ref).then((snap) => {
-          if (snap.exists()) setClient({ id: snap.id, ...(snap.data() as User) })
+          if (snap.exists()) setClient({ ...snap.data() as User, uid: snap.id })
         })
       }
       
@@ -55,7 +55,7 @@ export default function OrderDetailPage() {
       if (currentOrder.restaurantref) {
         getDoc(currentOrder.restaurantref).then((snap) => {
           if (snap.exists())
-            setRestaurant({ id: snap.id, ...(snap.data() as Restaurant) })
+            setRestaurant({ ...snap.data() as Restaurant, uid: snap.id })
         })
       }
       
@@ -63,7 +63,7 @@ export default function OrderDetailPage() {
       if (currentOrder.client_address_ref) {
         getDoc(currentOrder.client_address_ref).then((snap) => {
           if (snap.exists())
-            setAddress({ id: snap.id, ...(snap.data() as ClientAddress) })
+            setAddress({ ...snap.data() as ClientAddress, uid: snap.id })
         })
       }
       
@@ -71,7 +71,7 @@ export default function OrderDetailPage() {
       if (currentOrder.assigned_rider_ref) {
         getDoc(currentOrder.assigned_rider_ref).then((snap) => {
           if (snap.exists())
-            setAssignedRider({ id: snap.id, ...(snap.data() as Rider) })
+            setAssignedRider({ ...snap.data() as Rider, uid: snap.id })
         })
       }
     }
@@ -127,7 +127,7 @@ export default function OrderDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
+                <UserIcon className="h-5 w-5" />
                 Información del Pedido
               </CardTitle>
             </CardHeader>

@@ -37,9 +37,11 @@ export const getAllExchangeRatesSafe = async (): Promise<ValidatedExchangeRate[]
     return validatedExchangeRates
   } catch (error) {
     throw new AppError(
-      "Error al obtener tasas de cambio",
       ErrorCode.DATABASE_ERROR,
+      "Error al obtener tasas de cambio",
+      "Error al cargar las tasas de cambio",
       ErrorSeverity.HIGH,
+      500,
       { originalError: error }
     )
   }
@@ -73,9 +75,11 @@ export const getExchangeRateByIdSafe = async (id: string): Promise<ValidatedExch
     }
     
     throw new AppError(
-      `Error al obtener tasa de cambio con ID: ${id}`,
       ErrorCode.DATABASE_ERROR,
+      `Error al obtener tasa de cambio con ID: ${id}`,
+      "Error al cargar la tasa de cambio",
       ErrorSeverity.HIGH,
+      500,
       { exchangeRateId: id, originalError: error }
     )
   }
@@ -102,9 +106,11 @@ export const updateExchangeRateSafe = async (id: string, rate: number): Promise<
     }
     
     throw new AppError(
-      `Error al actualizar tasa de cambio con ID: ${id}`,
       ErrorCode.DATABASE_ERROR,
+      `Error al actualizar tasa de cambio con ID: ${id}`,
+      "Error al actualizar la tasa de cambio",
       ErrorSeverity.HIGH,
+      500,
       { exchangeRateId: id, rate, originalError: error }
     )
   }

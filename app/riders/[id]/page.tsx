@@ -192,11 +192,11 @@ export default function RiderDetailPage() {
                 </div>
               )}
 
-              {currentUser.created_at && (
+              {currentUser.createdAt && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Registrado:</span>
                   <span className="text-sm">
-                    {new Date(currentUser.created_at).toLocaleDateString()}
+                    {new Date(currentUser.createdAt).toLocaleDateString()}
                   </span>
                 </div>
               )}

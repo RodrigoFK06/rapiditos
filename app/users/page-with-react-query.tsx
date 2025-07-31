@@ -9,8 +9,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { useUsers, useUpdateUser, useToggleUserStatus, useUserSearch } from "@/hooks/queries/useUserQueries"
-import { useUserColumns } from "@/lib/table/columns"
-import { RefreshCw, Search } from "lucide-react"
+import type { ColumnDef } from "@tanstack/react-table"
+import type { ValidatedUser } from "@/lib/validations/runtime"
+import Link from "next/link"
+import { RefreshCw, Search, Eye } from "lucide-react"
 
 export default function UsersPageWithReactQuery() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -36,7 +38,49 @@ export default function UsersPageWithReactQuery() {
   const toggleStatusMutation = useToggleUserStatus()
 
   // Columnas memoizadas
-  const columns = useUserColumns()
+  const columns: ColumnDef<ValidatedUser>[] = [
+    {
+      accessorKey: "display_name",
+      header: "Nombre",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("display_name")}</div>
+      ),
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+    },
+    {
+      accessorKey: "role",
+      header: "Rol",
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.getValue("role")}</Badge>
+      ),
+    },
+    {
+      accessorKey: "isActive",
+      header: "Activo",
+      cell: ({ row }) => (
+        <Badge variant={row.getValue("isActive") ? "default" : "secondary"}>
+          {row.getValue("isActive") ? "Sí" : "No"}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const user = row.original
+        const refId = `users/${user.uid}`
+        return (
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/users/${encodeURIComponent(refId)}`}>
+              <Eye className="h-4 w-4" />
+            </Link>
+          </Button>
+        )
+      },
+    },
+  ]
 
   // Determinar qué datos mostrar
   const displayData = searchTerm.length >= 2 ? searchResults : users

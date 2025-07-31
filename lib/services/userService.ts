@@ -94,9 +94,14 @@ export const getUserByRef = async (refPath: string): Promise<User | null> => {
     }
     
     const data = userDoc.data()
+    
+    // Validar que los datos tienen los campos requeridos
+    if (!data?.display_name || !data?.email || !data?.phone || !data?.role) {
+      throw new Error("Datos de usuario incompletos")
+    }
+    
     return {
       uid: userDoc.id,
-      id: userDoc.id,
       ...data
     } as User
   } catch (error) {
@@ -212,16 +217,16 @@ export const getAllUsers = async (options: UserQueryOptions = {}): Promise<Pagin
         let users = snapshot.docs.map(mapFirestoreUser)
         
         // Aplicar filtros en memoria
-        if (role && role !== 'all') {
-          users = users.filter(user => user.role === role)
+        if (options.role && options.role !== 'all') {
+          users = users.filter(user => user.role === options.role)
         }
         
-        if (searchTerm) {
-          const searchLower = searchTerm.toLowerCase()
+        if (options.searchTerm) {
+          const searchLower = options.searchTerm.toLowerCase()
           users = users.filter(user =>
             user.display_name.toLowerCase().includes(searchLower) ||
             user.email.toLowerCase().includes(searchLower) ||
-            user.phone.includes(searchTerm)
+            user.phone.includes(options.searchTerm!)
           )
         }
         

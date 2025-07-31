@@ -139,7 +139,7 @@ export function useUpdateUser() {
           return {
             ...old,
             users: old.users.map((user) =>
-              user.uid === id || user.id === id 
+              user.uid === id 
                 ? { ...user, ...data } 
                 : user
             )
@@ -229,7 +229,7 @@ export function useToggleUserStatus() {
           return {
             ...old,
             users: old.users.map((user) =>
-              user.uid === id || user.id === id 
+              user.uid === id 
                 ? { ...user, isActive } 
                 : user
             )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -48,11 +48,11 @@ export function EditExchangeRateModal({
   })
 
   // Resetear form cuando cambia el exchange rate
-  useState(() => {
+  useEffect(() => {
     form.reset({
       rate: exchangeRate.rate,
     })
-  }, [exchangeRate.id])
+  }, [exchangeRate.id, form])
 
   const onSubmit = async (data: ExchangeRateFormData) => {
     if (isSubmitting) return

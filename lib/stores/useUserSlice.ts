@@ -34,7 +34,8 @@ export const useUserSlice = create<UserSlice>()(
         })
         
         try {
-          const users = await getAllUsers()
+          const result = await getAllUsers()
+          const users = result.users // Extraer el array de usuarios de PaginatedUsers
           set((state) => {
             state.users = users
             state.isLoading = false

@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import React, { Suspense, lazy } from 'react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -88,7 +88,7 @@ export function withLazyLoading<P extends object>(
   
   return function LazyWrapper(props: P) {
     return (
-      <Suspense fallback={<fallback />}>
+      <Suspense fallback={React.createElement(fallback)}>
         <LazyComponent {...props} />
       </Suspense>
     )
@@ -132,7 +132,7 @@ export function LazyRoute({
   [key: string]: any
 }) {
   return (
-    <Suspense fallback={<fallback />}>
+    <Suspense fallback={fallback ? React.createElement(fallback) : <PageLoadingFallback />}>
       <Component {...props} />
     </Suspense>
   )

@@ -72,13 +72,13 @@ export function EditRestaurantModalValidated({ open, onOpenChange, restaurant, o
         district: restaurant.district || "",
         city: restaurant.city || "",
         category: restaurant.category || "",
-        restaurantPhone: restaurant.restaurantPhone || "",
+        restaurantPhone: restaurant.restaurantPhone ? String(restaurant.restaurantPhone) : "",
         restaurantEmail: restaurant.restaurantEmail || "",
         webSite: restaurant.webSite || "",
         managerName: restaurant.managerName || "",
         managerLastName: restaurant.managerLastName || "",
         reference_place: restaurant.reference_place || "",
-        yearFundation: restaurant.yearFundation,
+        yearFundation: restaurant.yearFundation ? Number(restaurant.yearFundation) : undefined,
         isActive: restaurant.isActive ?? true,
         doc_ruc_url: restaurant.doc_ruc_url || "",
         doc_id_url: restaurant.doc_id_url || "",
@@ -89,7 +89,14 @@ export function EditRestaurantModalValidated({ open, onOpenChange, restaurant, o
 
   const onSubmit = async (data: RestaurantFormData) => {
     try {
-      const success = await onSave(data)
+      // Convertir tipos de datos antes de guardar
+      const processedData = {
+        ...data,
+        yearFundation: data.yearFundation ? String(data.yearFundation) : undefined,
+        restaurantPhone: data.restaurantPhone ? parseInt(data.restaurantPhone, 10) : undefined,
+      } as Partial<Restaurant>
+      
+      const success = await onSave(processedData)
       if (success) {
         toast({
           title: "Éxito",
@@ -206,6 +213,134 @@ export function EditRestaurantModalValidated({ open, onOpenChange, restaurant, o
                 )}
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="addressText"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Dirección completa" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="yearFundation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Año de Fundación</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        placeholder="2020" 
+                        {...field}
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="district"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Distrito *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Distrito" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ciudad *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ciudad" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="managerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre del Encargado *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="managerLastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Apellido del Encargado</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Apellido" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="webSite"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sitio Web</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="url"
+                      placeholder="https://www.ejemplo.com" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="reference_place"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Referencia del Lugar</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Cerca del parque principal" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

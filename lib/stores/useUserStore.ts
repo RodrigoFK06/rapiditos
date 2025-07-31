@@ -29,7 +29,8 @@ export const useUserStore = create<UserState>((set) => ({
   fetchUsers: async () => {
     set({ isLoading: true, error: null })
     try {
-      const users = await getAllUsers()
+      const result = await getAllUsers()
+      const users = result.users // Extraer el array de usuarios de PaginatedUsers
       set({
         users,
         clients: users.filter((user) => user.role === "client"),

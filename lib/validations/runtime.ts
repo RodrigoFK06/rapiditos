@@ -99,7 +99,7 @@ export const validateUser = (data: unknown): ValidatedUser => {
       throw new ValidationError(
         `Error validando usuario: ${firstError.message}`,
         firstError.path.join('.'),
-        firstError.received
+        'received' in firstError ? firstError.received : 'unknown'
       )
     }
     throw error
@@ -115,7 +115,7 @@ export const validateRestaurant = (data: unknown): ValidatedRestaurant => {
       throw new ValidationError(
         `Error validando restaurante: ${firstError.message}`,
         firstError.path.join('.'),
-        firstError.received
+        'received' in firstError ? firstError.received : 'unknown'
       )
     }
     throw error
@@ -131,7 +131,7 @@ export const validateRider = (data: unknown): ValidatedRider => {
       throw new ValidationError(
         `Error validando repartidor: ${firstError.message}`,
         firstError.path.join('.'),
-        firstError.received
+        'received' in firstError ? firstError.received : 'unknown'
       )
     }
     throw error
@@ -147,7 +147,7 @@ export const validateOrder = (data: unknown): ValidatedOrder => {
       throw new ValidationError(
         `Error validando pedido: ${firstError.message}`,
         firstError.path.join('.'),
-        firstError.received
+        'received' in firstError ? firstError.received : 'unknown'
       )
     }
     throw error

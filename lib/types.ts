@@ -16,6 +16,7 @@ export interface User {
 
 export interface Rider {
   id: string
+  uid?: string
   display_name: string
   phone: string
   photo_url: string
@@ -24,10 +25,16 @@ export interface Rider {
   active_rider: boolean
   active_orders?: number
   number_deliverys?: number
+  vehicle_type?: string
+  license_plate?: string
+  total_deliveries?: number
+  rating?: number
+  last_delivery_date?: Date
 }
 
 export interface Restaurant {
   id: string
+  uid?: string
   name: string
   addressText: string
   category: string
@@ -37,7 +44,7 @@ export interface Restaurant {
   description: string
   managerName: string
   managerLastName?: string
-  restaurantPhone: string
+  restaurantPhone: number // ✅ Integer según esquema
   restaurantEmail?: string
   webSite?: string
   reference_place?: string
@@ -46,9 +53,12 @@ export interface Restaurant {
   doc_id_url?: string
   doc_license_url?: string
   userId: DocumentReference
-  numDoc: string
+  numDoc: number // ✅ Integer según esquema
   typeDoc: string
-  yearFundation?: number
+  yearFundation?: string // ✅ String según esquema
+  instagram?: string // ✅ Agregado según esquema
+  facebook?: string // ✅ Agregado según esquema
+  restaurant_zone?: string // ✅ Agregado según esquema
   days?: RestaurantDay[]
   categorias?: { NombreCategoria: string }[]
   platillos?: Dish[]
@@ -77,7 +87,7 @@ export interface Dish {
   activo?: boolean
 }
 
-export type OrderStatus = "Nuevo" | "Preparando" | "Enviando" | "Completado"
+export type OrderStatus = "Nuevo" | "Preparando" | "Enviando" | "Completado" | "Cancelado"
 
 export interface Order {
   id: string
@@ -119,6 +129,7 @@ export interface OrderDetail {
 
 export interface ClientAddress {
   id: string
+  uid?: string
   ZIP_code: string
   address: string
   tag: string
@@ -141,6 +152,7 @@ export interface Message {
   clientref: DocumentReference
   clientext?: string
   ridertext?: string
+  admintext?: string
   timestamp: Date
 }
 
@@ -199,7 +211,7 @@ export interface RestaurantsStats {
   topRestaurants: {
     id: string
     name: string
-    phone: string
+    phone: number // ✅ Corregido a number para consistencia
     orders: number
     revenue: number
     topDish?: string

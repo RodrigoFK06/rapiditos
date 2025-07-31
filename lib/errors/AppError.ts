@@ -10,6 +10,10 @@ export enum ErrorCode {
   FIREBASE_PERMISSION_DENIED = 'FIREBASE_PERMISSION_DENIED',
   FIREBASE_DOCUMENT_NOT_FOUND = 'FIREBASE_DOCUMENT_NOT_FOUND',
   
+  // Errores de base de datos
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  DATABASE_CONNECTION_ERROR = 'DATABASE_CONNECTION_ERROR',
+  
   // Errores de validación
   VALIDATION_INVALID_DATA = 'VALIDATION_INVALID_DATA',
   VALIDATION_REQUIRED_FIELD = 'VALIDATION_REQUIRED_FIELD',
@@ -67,6 +71,8 @@ export class AppError extends Error {
       [ErrorCode.FIREBASE_NETWORK_ERROR]: 'Error de conexión. Verifica tu internet',
       [ErrorCode.FIREBASE_PERMISSION_DENIED]: 'Acceso denegado a los datos',
       [ErrorCode.FIREBASE_DOCUMENT_NOT_FOUND]: 'El documento solicitado no existe',
+      [ErrorCode.DATABASE_ERROR]: 'Error en la base de datos',
+      [ErrorCode.DATABASE_CONNECTION_ERROR]: 'Error de conexión a la base de datos',
       [ErrorCode.VALIDATION_INVALID_DATA]: 'Los datos proporcionados no son válidos',
       [ErrorCode.VALIDATION_REQUIRED_FIELD]: 'Faltan campos requeridos',
       [ErrorCode.BUSINESS_OPERATION_NOT_ALLOWED]: 'Operación no permitida',

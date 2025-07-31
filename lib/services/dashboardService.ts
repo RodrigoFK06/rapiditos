@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore"
 import { db } from "../firebase"
 import type { DashboardStats, Order } from "../types"
 
@@ -57,9 +57,9 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   }
 }
 
-export const getRecentOrders = async (limit = 5): Promise<Order[]> => {
+export const getRecentOrders = async (limitCount = 5): Promise<Order[]> => {
   try {
-    const q = query(collection(db, "orders"), orderBy("fecha_creacion", "desc"), limit(limit))
+    const q = query(collection(db, "orders"), orderBy("fecha_creacion", "desc"), limit(limitCount))
     const ordersSnapshot = await getDocs(q)
     return ordersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Order)
   } catch (error) {

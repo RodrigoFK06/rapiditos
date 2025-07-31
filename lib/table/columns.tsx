@@ -40,7 +40,7 @@ export const createUserColumns = (): ColumnDef<User>[] => [
     id: "actions",
     cell: ({ row }) => {
       const user = row.original
-      const refId = `users/${user.uid ?? user.id}`
+      const refId = `users/${user.uid}`
       return (
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/users/${encodeURIComponent(refId)}`}>
@@ -162,9 +162,13 @@ export const createOrderColumns = (): ColumnDef<Order>[] => [
   {
     accessorKey: "id",
     header: "ID",
-    cell: ({ row }) => (
-      <div className="font-mono text-xs">{row.getValue("id")?.slice(0, 8)}</div>
-    ),
+    cell: ({ row }) => {
+      const id = row.getValue("id")
+      const idString = typeof id === 'string' ? id : String(id || '')
+      return (
+        <div className="font-mono text-xs">{idString.slice(0, 8)}</div>
+      )
+    },
   },
   {
     accessorKey: "estado",

@@ -87,7 +87,7 @@ export default function UsersPage() {
       cell: ({ row }) => (
         <div 
           className="font-medium cursor-pointer hover:text-primary"
-          onMouseEnter={() => prefetchUser(row.original.uid || row.original.id)}
+          onMouseEnter={() => prefetchUser(row.original.uid)}
         >
           {row.getValue("display_name") || "Sin nombre"}
         </div>
@@ -112,7 +112,7 @@ export default function UsersPage() {
           restaurant: "default", 
           rider: "secondary",
           client: "outline"
-        }
+        } as const
         return (
           <Badge variant={roleColors[role as keyof typeof roleColors] || "outline"}>
             {role || "Sin rol"}
@@ -136,7 +136,7 @@ export default function UsersPage() {
               variant="ghost"
               size="sm"
               onClick={() => toggleStatusMutation.mutate({ 
-                id: user.uid || user.id, 
+                id: user.uid, 
                 isActive: !isActive 
               })}
               disabled={toggleStatusMutation.isPending}
@@ -177,14 +177,14 @@ export default function UsersPage() {
       header: "Acciones",
       cell: ({ row }) => {
         const user = row.original
-        const refId = `users/${user.uid || user.id}`
+        const refId = `users/${user.uid}`
         
         return (
           <Button 
             variant="ghost" 
             size="sm" 
             asChild
-            onMouseEnter={() => prefetchUser(user.uid || user.id)}
+            onMouseEnter={() => prefetchUser(user.uid)}
           >
             <Link href={`/users/${encodeURIComponent(refId)}`}>
               <Eye className="h-4 w-4" />
@@ -295,7 +295,7 @@ export default function UsersPage() {
                 <Users className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{stats.byRole.client || 0}</div>
+                <div className="text-2xl font-bold text-blue-600">{(stats.byRole as Record<string, number>)?.client || 0}</div>
                 <p className="text-xs text-muted-foreground">
                   Usuarios tipo cliente
                 </p>

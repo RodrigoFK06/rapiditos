@@ -275,10 +275,13 @@ export const getRidersStats = async (): Promise<RidersStats> => {
 export const getRestaurantsStats = async (): Promise<RestaurantsStats> => {
   try {
     const restSnapshot = await getDocs(collection(db, "restaurant"))
-    const restaurants: Restaurant[] = restSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Restaurant),
-    }))
+    const restaurants: Restaurant[] = restSnapshot.docs.map((doc) => {
+      const data = doc.data() as Restaurant
+      return {
+        ...data,
+        id: doc.id, // Asegurar que el id del documento prevalezca
+      }
+    })
     const totalActive = restaurants.filter((r) => r.isActive).length
 
     const ordersSnapshot = await getDocs(collection(db, "orders"))
