@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useOrderStore } from "@/lib/stores/useOrderStore"
 import { useRiderStore } from "@/lib/stores/useRiderStore"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, updateDoc, runTransaction } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { User, Restaurant, ClientAddress, Rider } from "@/lib/types"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { ArrowLeft, UserIcon } from "lucide-react"
+import { ArrowLeft, UserIcon, Pin } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import type { OrderStatus } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -80,11 +80,134 @@ export default function OrderDetailPage() {
   const handleStatusUpdate = async (newStatus: OrderStatus) => {
     if (!currentOrder) return
 
-    const success = await updateStatus(currentOrder.id, newStatus)
-    if (success) {
-      toast.success("Estado del pedido actualizado correctamente")
-    } else {
-      toast.error("Error al actualizar el estado del pedido")
+    try {
+      // 1. ✅ Lógica para estado "Preparando" - Generar pickup_pin
+      if (newStatus === "Preparando") {
+        const pickupPin = Math.floor(Math.random() * 900 + 100).toString() // PIN de 3 dígitos
+        
+        await runTransaction(db, async (transaction) => {
+          const orderRef = doc(db, "orders", currentOrder.id)
+          transaction.update(orderRef, {
+            estado: newStatus,
+            pickup_pin: pickupPin,
+            ready_to_pay: true, // ✅ AGREGADO: ready_to_pay pasa a true
+            activo: true // ✅ AGREGADO: activo pasa a true
+          })
+        })
+
+        // Actualizar estado local para mostrar el PIN inmediatamente
+        const updatedOrder = { ...currentOrder, estado: newStatus, pickup_pin: pickupPin }
+        // Aquí podrías actualizar el store local si tienes un método para ello
+
+        toast.success(`Estado actualizado a "Preparando". PIN generado: ${pickupPin}`)
+        
+        // Refrescar datos del pedido
+        fetchOrderById(orderId)
+        return
+      }
+
+      // 2. ✅ Lógica para estado "Completados" - Limpieza completa
+      if (newStatus === "Completados") {
+        console.log("🔥 ENTRANDO EN LÓGICA DE COMPLETADOS")
+        console.log("🔍 ORDEN COMPLETA:", currentOrder)
+        console.log("🔍 currentOrder.cliente_ref:", currentOrder.cliente_ref?.id)
+        console.log("🔍 currentOrder.rider_ref:", currentOrder.rider_ref?.id)
+        console.log("🔍 Posibles campos de cliente:", {
+          cliente_ref: currentOrder.cliente_ref,
+          clienteref: (currentOrder as any).clienteref,
+          client_ref: (currentOrder as any).client_ref,
+          clientRef: (currentOrder as any).clientRef,
+          user_ref: (currentOrder as any).user_ref
+        })
+        console.log("🔍 Posibles campos de rider:", {
+          rider_ref: currentOrder.rider_ref,
+          riderRef: (currentOrder as any).riderRef,
+          assigned_rider_ref: currentOrder.assigned_rider_ref
+        })
+        
+        await runTransaction(db, async (transaction) => {
+          const orderRef = doc(db, "orders", currentOrder.id)
+          
+          // IMPORTANTE: Todas las LECTURAS primero (antes de cualquier escritura)
+          let riderData = null
+          if (currentOrder.rider_ref) {
+            const riderDoc = await transaction.get(currentOrder.rider_ref)
+            if (riderDoc.exists()) {
+              riderData = riderDoc.data()
+              console.log("📋 Datos del rider leídos:", riderData.active_orders, riderData.number_deliverys)
+            }
+          }
+
+          let clientData = null
+          if ((currentOrder as any).clienteref) {
+            const clientDoc = await transaction.get((currentOrder as any).clienteref)
+            if (clientDoc.exists()) {
+              clientData = clientDoc.data()
+              console.log("👤 Datos del cliente leídos:", (clientData as any)?.activeorders)
+            }
+          }
+
+          // Ahora todas las ESCRITURAS después de las lecturas
+          
+          // A. Actualizar campos del pedido
+          transaction.update(orderRef, {
+            estado: newStatus,
+            activo: false, // ✅ CORREGIDO: debe ser false cuando está completado (ya no activo)
+            fecha_entrega: new Date()
+          })
+
+          // B. Limpiar chat_ref del cliente y actualizar activeorders
+          if ((currentOrder as any).clienteref && clientData) {
+            console.log("✅ ACTUALIZANDO CLIENTE - activeorders: 0")
+            transaction.update((currentOrder as any).clienteref, {
+              chat_ref: null,
+              activeorders: 0 // ✅ AGREGADO: activeorders pasa a 0 cuando se completa
+            })
+          } else {
+            console.log("❌ NO SE ACTUALIZA CLIENTE:", {
+              tieneRef: !!(currentOrder as any).clienteref,
+              tieneData: !!clientData
+            })
+          }
+
+          // C. Limpiar asignación del rider
+          if (currentOrder.rider_ref && riderData) {
+            const currentDeliveries = riderData.number_deliverys || 0
+            const currentActiveOrders = riderData.active_orders || 0
+            console.log("✅ ACTUALIZANDO RIDER - active_orders:", currentActiveOrders, "→", Math.max(0, currentActiveOrders - 1))
+            
+            transaction.update(currentOrder.rider_ref, {
+              asigned_rider_ref: null,
+              asigned_rider_ref2: null,
+              active_orders: Math.max(0, currentActiveOrders - 1), // ✅ CORREGIDO: decrementar -1, no poner en 0
+              number_deliverys: currentDeliveries + 1
+            })
+          } else {
+            console.log("❌ NO SE ACTUALIZA RIDER:", {
+              tieneRef: !!currentOrder.rider_ref,
+              tieneData: !!riderData
+            })
+          }
+        })
+
+        toast.success("Pedido marcado como completado. Se han limpiado todas las referencias.")
+        
+        // Refrescar datos del pedido
+        fetchOrderById(orderId)
+        return
+      }
+
+      // 3. ✅ Para otros estados (Nuevo, Enviando) - Solo actualizar estado
+      const success = await updateStatus(currentOrder.id, newStatus)
+      if (success) {
+        toast.success("Estado del pedido actualizado correctamente")
+      } else {
+        toast.error("Error al actualizar el estado del pedido")
+      }
+
+    } catch (error) {
+      console.error("Error al actualizar estado del pedido:", error)
+      toast.error("Error al procesar la actualización del pedido")
     }
   }
 
@@ -172,6 +295,17 @@ export default function OrderDetailPage() {
                 <span className="text-sm font-medium">Fecha:</span>
                 <span className="text-sm">{formatDate(currentOrder.fecha_creacion)}</span>
               </div>
+              {(currentOrder as any).pickup_pin && (
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <Pin className="h-4 w-4" />
+                    PIN de Recogida:
+                  </span>
+                  <Badge variant="default" className="font-mono text-lg">
+                    {(currentOrder as any).pickup_pin}
+                  </Badge>
+                </div>
+              )}
               {currentOrder.note && (
                 <div>
                   <span className="text-sm font-medium">Nota:</span>
@@ -198,7 +332,7 @@ export default function OrderDetailPage() {
                     <SelectItem value="Nuevo">Nuevo</SelectItem>
                     <SelectItem value="Preparando">Preparando</SelectItem>
                     <SelectItem value="Enviando">Enviando</SelectItem>
-                    <SelectItem value="Completado">Completado</SelectItem>
+                    <SelectItem value="Completados">Completados</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -87,7 +87,7 @@ export interface Dish {
   activo?: boolean
 }
 
-export type OrderStatus = "Nuevo" | "Preparando" | "Enviando" | "Completado" | "Cancelado"
+export type OrderStatus = "Nuevo" | "Preparando" | "Enviando" | "Completados" | "Cancelado"
 
 export interface Order {
   id: string

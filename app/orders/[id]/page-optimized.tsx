@@ -53,7 +53,7 @@ export default function OrderDetailPageOptimized() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Pedido #{order.id.slice(0, 8)}</h1>
-          <Badge variant={order.estado === "Completado" ? "default" : "secondary"}>
+          <Badge variant={order.estado === "Completados" ? "default" : "secondary"}>
             {order.estado}
           </Badge>
         </div>
