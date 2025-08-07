@@ -79,7 +79,7 @@ export function safeDateFormat(
     hour: '2-digit',
     minute: '2-digit'
   },
-  locale: string = 'es-PE',
+  locale: string = 'en-US',
   fallback: string = 'N/A'
 ): string {
   const date = safeToDate(value)
@@ -140,7 +140,7 @@ export function safeDateOnly(value: unknown, fallback: string = '-'): string {
     year: 'numeric',
     month: '2-digit', 
     day: '2-digit'
-  }, 'es-PE', fallback)
+  }, 'en-US', fallback)
 }
 
 /**
@@ -150,7 +150,7 @@ export function safeTimeOnly(value: unknown, fallback: string = '-'): string {
   return safeDateFormat(value, {
     hour: '2-digit',
     minute: '2-digit'
-  }, 'es-PE', fallback)
+  }, 'en-US', fallback)
 }
 
 // Tipos para TypeScript

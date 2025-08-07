@@ -67,7 +67,7 @@ export default function OrderDetailPageOptimized() {
             <CardContent className="space-y-2">
               <div className="flex justify-between">
                 <span className="font-medium">Total:</span>
-                <span>S/. {order.total?.toFixed(2)}</span>
+                <span>$ {order.total?.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Estado:</span>

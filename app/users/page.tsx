@@ -160,7 +160,7 @@ export default function UsersPage() {
           day: '2-digit',
           hour: '2-digit',
           minute: '2-digit'
-        }, 'es-PE', 'N/A')
+        }, 'en-US', 'N/A')
         
         const relativeTime = safeRelativeTime(dateValue, 'es', 'Desconocido')
         

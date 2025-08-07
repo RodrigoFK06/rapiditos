@@ -21,7 +21,7 @@ export function KpiCards({ data }: { data: DashboardKpis }) {
           <CardContent>
             <div className="text-2xl font-bold">
               {typeof it.value === "number" && it.label.includes("Ingreso")
-                ? `S/.${(it.value as number).toFixed(2)}`
+                ? `$${(it.value as number).toFixed(2)}`
                 : it.value}
             </div>
           </CardContent>

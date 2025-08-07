@@ -190,7 +190,7 @@ export const createOrderColumns = (): ColumnDef<Order>[] => [
       const amount = row.getValue("total") as number
       return (
         <div className="font-medium">
-          S/. {amount?.toFixed(2)}
+          $ {amount?.toFixed(2)}
         </div>
       )
     },
@@ -253,7 +253,7 @@ export const createExchangeRateColumns = (
       const rate = row.getValue("rate") as number
       return (
         <div className="font-mono text-right">
-          {rate.toLocaleString('es-PE', {
+          {rate.toLocaleString('en-US', {
             minimumFractionDigits: 4,
             maximumFractionDigits: 4
           })}

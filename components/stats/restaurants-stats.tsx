@@ -20,7 +20,7 @@ export function RestaurantsStatsCard({ data }: { data: RestaurantsStats }) {
               <div key={r.id} className="flex justify-between text-sm">
                 <span>{r.name}</span>
                 <span>
-                  {r.orders} pedidos / S/.{r.revenue.toFixed(2)}
+                  {r.orders} pedidos / ${r.revenue.toFixed(2)}
                   {r.topDish && <span className="ml-2 text-xs text-muted-foreground">{r.topDish}</span>}
                 </span>
               </div>
