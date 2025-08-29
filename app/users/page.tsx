@@ -16,6 +16,7 @@ import { Eye, RefreshCw, Users, UserCheck, UserX, Filter, AlertTriangle } from "
 import type { User } from "@/lib/types"
 import { 
   useUsers, 
+  useInfiniteUsers,
   useUserSearch, 
   useToggleUserStatus, 
   useUserStats,
@@ -56,15 +57,18 @@ export default function UsersPage() {
     searchTerm: debouncedSearch.trim() !== "" ? debouncedSearch : undefined
   }), [roleFilter, debouncedSearch])
 
-  // 📊 Hooks de React Query - SIN LOOPS INFINITOS
-  const { 
-    data: usersData, 
-    isLoading, 
-    isError, 
-    error, 
-    refetch, 
-    isFetching 
-  } = useUsers(queryOptions)
+  // 📊 Hook paginado para poder cargar más de 50 usuarios
+  const {
+    data: usersPages,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteUsers(queryOptions)
 
   // 🔍 Búsqueda separada para resultados en tiempo real (solo si hay término)
   const { 
@@ -204,10 +208,13 @@ export default function UsersPage() {
   // 📊 Determinar qué datos mostrar (búsqueda vs lista normal)
   const displayData = useMemo(() => {
     if (debouncedSearch.trim() !== "" && searchResults.length > 0) {
+      // En modo búsqueda usamos resultados directos (sin paginación)
       return searchResults
     }
-    return usersData?.users || []
-  }, [debouncedSearch, searchResults, usersData])
+    // Aplanar páginas de usuarios
+    const pages = usersPages?.pages ?? []
+    return pages.flatMap(p => p.users)
+  }, [debouncedSearch, searchResults, usersPages])
 
   const showLoading = isLoading || (debouncedSearch.trim() !== "" && isSearching)
 
@@ -377,6 +384,18 @@ export default function UsersPage() {
                   searchKey="display_name"
                   searchPlaceholder="Buscar en esta página..."
                 />
+              )}
+              {/* ♾️ Paginación: cargar más */}
+              {debouncedSearch.trim() === "" && displayData.length > 0 && (
+                <div className="mt-4 flex justify-center">
+                  <Button 
+                    onClick={() => fetchNextPage()} 
+                    disabled={!hasNextPage || isFetchingNextPage}
+                    variant="outline"
+                  >
+                    {isFetchingNextPage ? 'Cargando…' : hasNextPage ? 'Cargar más' : 'No hay más usuarios'}
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>

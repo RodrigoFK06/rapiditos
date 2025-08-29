@@ -127,42 +127,51 @@ export const getAllUsers = async (options: UserQueryOptions = {}): Promise<Pagin
       searchTerm
     } = options
 
-    // 🔥 ESTRATEGIA 1: Query simple para evitar errores de índice
+    // 🔥 ESTRATEGIA 1: Query base
     let baseQuery = collection(db, "users")
-    
-    // Solo aplicamos el filtro más básico para evitar índices compuestos
-    if (role && role !== 'all') {
+    const isRoleFilter = !!role && role !== 'all'
+    const isSearching = !!searchTerm && searchTerm.trim() !== ''
+
+    if (isRoleFilter) {
       baseQuery = query(baseQuery, where("role", "==", role)) as any
     }
-    
-    // 🔥 ESTRATEGIA 2: Evitar orderBy + where que requiere índices complejos
+
+    // 🔥 ESTRATEGIA 2: Evitar índices compuestos; soportar paginación con __name__
     let finalQuery = baseQuery
-    
-    if (!searchTerm && !role) {
-      // Solo ordenar cuando no hay filtros para evitar índices compuestos
+
+    if (!isSearching && !isRoleFilter) {
+      // Sin búsqueda ni filtro: se puede ordenar por campo si existe índice simple
       try {
         finalQuery = query(
           baseQuery,
           orderBy(orderByField, orderDirection),
           limit(queryLimit)
         ) as any
-        
         if (lastDoc) {
           finalQuery = query(finalQuery, startAfter(lastDoc)) as any
         }
       } catch (orderError) {
-        console.warn('Ordenamiento no disponible, usando query simple')
-        finalQuery = query(baseQuery, limit(queryLimit)) as any
+        console.warn('Ordenamiento no disponible, usando orderBy(__name__)')
+        finalQuery = query(baseQuery, orderBy('__name__'), limit(queryLimit)) as any
+        if (lastDoc) {
+          finalQuery = query(finalQuery, startAfter(lastDoc)) as any
+        }
+      }
+    } else if (isRoleFilter && !isSearching) {
+      // Con filtro por rol: ordenar por __name__ para poder paginar sin índice compuesto
+      finalQuery = query(baseQuery, orderBy('__name__'), limit(queryLimit)) as any
+      if (lastDoc) {
+        finalQuery = query(finalQuery, startAfter(lastDoc)) as any
       }
     } else {
-      // Para búsqueda o filtros, solo aplicar límite
-      finalQuery = query(baseQuery, limit(queryLimit * 2)) as any // Más docs para filtrar
+      // Modo búsqueda: traer más y filtrar en memoria, sin paginar
+      finalQuery = query(baseQuery, orderBy('__name__'), limit(Math.max(queryLimit * 2, 100))) as any
     }
 
     const snapshot = await getDocs(finalQuery)
     let users = snapshot.docs.map(mapFirestoreUser)
 
-    // � ESTRATEGIA 3: Filtrado de búsqueda en memoria (evita índices complejos)
+  // 🔎 ESTRATEGIA 3: Filtrado de búsqueda en memoria (evita índices complejos)
     if (searchTerm && searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase().trim()
       users = users.filter(user => 
@@ -194,13 +203,14 @@ export const getAllUsers = async (options: UserQueryOptions = {}): Promise<Pagin
       })
     }
 
-    const hasMore = snapshot.docs.length === queryLimit
-    const newLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null
+  const effectiveLimit = isSearching ? Math.max(queryLimit * 2, 100) : queryLimit
+  const hasMore = !isSearching && snapshot.docs.length === queryLimit
+  const newLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null
 
     return {
       users,
-      lastDoc: searchTerm ? null : newLastDoc, // No paginación en búsqueda
-      hasMore: searchTerm ? false : hasMore,   // No paginación en búsqueda
+  lastDoc: isSearching ? null : newLastDoc, // No paginación en búsqueda
+  hasMore: isSearching ? false : hasMore,   // No paginación en búsqueda
       total: users.length
     }
   } catch (error) {

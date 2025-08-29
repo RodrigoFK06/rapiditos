@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { useMemo, useCallback } from 'react'
 import { 
   getAllUsers, 
@@ -55,6 +55,30 @@ export function useUsers(options: UserQueryOptions = {}) {
     
     // ✅ Placeholder data para evitar estados undefined
     placeholderData: { users: [], lastDoc: null, hasMore: false, total: 0 } as PaginatedUsers,
+  })
+}
+
+/**
+ * ♾️ Hook para paginación infinita de usuarios
+ * Carga más páginas usando lastDoc/hasMore del servicio
+ */
+export function useInfiniteUsers(options: Omit<UserQueryOptions, 'lastDoc'> = {}) {
+  const pageSize = options.limit ?? 50
+
+  return useInfiniteQuery({
+    queryKey: [...userKeys.list({ ...options, limit: pageSize }), 'infinite'],
+    queryFn: ({ pageParam }) =>
+      getAllUsers({
+        ...options,
+        limit: pageSize,
+        lastDoc: pageParam ?? undefined,
+      }),
+    initialPageParam: null as any,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.lastDoc : undefined),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   })
 }
 
