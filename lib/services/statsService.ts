@@ -169,7 +169,7 @@ export const getOrdersStats = async (): Promise<OrdersStats> => {
       paymentMap[method] = (paymentMap[method] || 0) + 1
 
       switch (data.estado) {
-        case "Completado":
+        case "Completados":
           completed++
           revenue += data.total || 0
           break
@@ -293,7 +293,7 @@ export const getRestaurantsStats = async (): Promise<RestaurantsStats> => {
         const id = restRef.id
         if (!countMap[id]) countMap[id] = { orders: 0, revenue: 0 }
         countMap[id].orders++
-        if (data.estado === "Completado") {
+        if (data.estado === "Completados") {
           countMap[id].revenue += data.total || 0
         }
       }
@@ -352,7 +352,7 @@ export const getTimeStats = async (): Promise<TimeStats> => {
       const day = format(created, "yyyy-MM-dd")
       const hour = created.getHours().toString()
       perHourMap[hour] = (perHourMap[hour] || 0) + 1
-      if (data.estado === "Completado" && data.fecha_entrega) {
+      if (data.estado === "Completados" && data.fecha_entrega) {
         const delivered = (data.fecha_entrega instanceof Timestamp
           ? data.fecha_entrega.toDate()
           : data.fecha_entrega) as Date

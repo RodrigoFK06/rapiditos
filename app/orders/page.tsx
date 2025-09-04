@@ -115,12 +115,18 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={orders}
-          searchKey="cliente_nombre"
-          searchPlaceholder="Buscar por cliente..."
-        />
+        {orders.length === 0 ? (
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
+            No hay pedidos confirmados para mostrar
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={orders}
+            searchKey="cliente_nombre"
+            searchPlaceholder="Buscar por cliente..."
+          />
+        )}
       </div>
     </DashboardLayout>
   )

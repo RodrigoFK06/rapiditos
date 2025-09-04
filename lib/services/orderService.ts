@@ -36,7 +36,12 @@ export const getOrderById = async (id: string): Promise<Order | null> => {
   try {
     const orderDoc = await getDoc(doc(db, "orders", id))
     if (orderDoc.exists()) {
-      return mapOrder(orderDoc)
+      const data = orderDoc.data() as any
+      // Seguridad: tratar admin_view ausente como false
+      if (data?.admin_view === true) {
+        return mapOrder(orderDoc)
+      }
+      return null
     }
     return null
   } catch (error) {
@@ -47,7 +52,12 @@ export const getOrderById = async (id: string): Promise<Order | null> => {
 
 export const getAllOrders = async (): Promise<Order[]> => {
   try {
-    const q = query(collection(db, "orders"), orderBy("fecha_creacion", "desc"))
+    // Mostrar únicamente pedidos confirmados para vista admin
+    const q = query(
+      collection(db, "orders"),
+      where("admin_view", "==", true),
+      orderBy("fecha_creacion", "desc")
+    )
     const ordersSnapshot = await getDocs(q)
     return ordersSnapshot.docs.map((d) => mapOrder(d))
   } catch (error) {
@@ -60,6 +70,7 @@ export const getActiveOrders = async (): Promise<Order[]> => {
   try {
     const q = query(
       collection(db, "orders"),
+      where("admin_view", "==", true),
       where("activo", "==", true),
       where("estado", "in", ["Nuevo", "Preparando", "Enviando"]),
     )
@@ -73,7 +84,11 @@ export const getActiveOrders = async (): Promise<Order[]> => {
 
 export const getOrdersByStatus = async (status: OrderStatus): Promise<Order[]> => {
   try {
-    const q = query(collection(db, "orders"), where("estado", "==", status))
+    const q = query(
+      collection(db, "orders"),
+      where("admin_view", "==", true),
+      where("estado", "==", status)
+    )
     const ordersSnapshot = await getDocs(q)
     return ordersSnapshot.docs.map((d) => mapOrder(d))
   } catch (error) {
@@ -86,7 +101,7 @@ export const updateOrderStatus = async (id: string, status: OrderStatus): Promis
   try {
     await updateDoc(doc(db, "orders", id), {
       estado: status,
-      ...(status === "Completado" ? { fecha_entrega: new Date() } : {}),
+  ...(status === "Completados" ? { fecha_entrega: new Date() } : {}),
     })
     return true
   } catch (error) {

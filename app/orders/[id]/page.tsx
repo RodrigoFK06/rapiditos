@@ -42,6 +42,14 @@ export default function OrderDetailPage() {
     }
   }, [orderId, fetchOrderById, fetchOrderDetails, fetchActiveRiders])
 
+  // Bloquear acceso a pedidos no confirmados (admin_view !== true)
+  useEffect(() => {
+    if (currentOrder === null) {
+      // Pedido no accesible o inexistente: enviar a listado sin filtrar info
+      router.replace('/orders')
+    }
+  }, [currentOrder, router])
+
   useEffect(() => {
     if (currentOrder) {
       // Fetch client data
