@@ -44,11 +44,12 @@ export default function OrderDetailPage() {
 
   // Bloquear acceso a pedidos no confirmados (admin_view !== true)
   useEffect(() => {
-    if (currentOrder === null) {
+    // Solo decidir después de que termine la carga
+    if (!isLoading && currentOrder === null) {
       // Pedido no accesible o inexistente: enviar a listado sin filtrar info
       router.replace('/orders')
     }
-  }, [currentOrder, router])
+  }, [isLoading, currentOrder, router])
 
   useEffect(() => {
     if (currentOrder) {

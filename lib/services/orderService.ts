@@ -61,8 +61,24 @@ export const getAllOrders = async (): Promise<Order[]> => {
     const ordersSnapshot = await getDocs(q)
     return ordersSnapshot.docs.map((d) => mapOrder(d))
   } catch (error) {
-    console.error("Error fetching orders:", error)
-    return []
+    // Fallback sin índice: filtrar por admin_view y ordenar en memoria
+    const errAny = error as any
+    console.warn("getAllOrders: usando fallback sin índice", errAny?.message || errAny)
+    try {
+      const qSimple = query(collection(db, "orders"), where("admin_view", "==", true))
+      const snap = await getDocs(qSimple)
+      const items = snap.docs.map((d) => mapOrder(d))
+      // Orden en memoria por fecha_creacion desc
+      items.sort((a: any, b: any) => {
+        const da = a?.fecha_creacion ? new Date(a.fecha_creacion).getTime() : 0
+        const dbt = b?.fecha_creacion ? new Date(b.fecha_creacion).getTime() : 0
+        return dbt - da
+      })
+      return items
+    } catch (fallbackErr) {
+      console.error("getAllOrders fallback failed:", fallbackErr)
+      return []
+    }
   }
 }
 
@@ -77,8 +93,18 @@ export const getActiveOrders = async (): Promise<Order[]> => {
     const ordersSnapshot = await getDocs(q)
     return ordersSnapshot.docs.map((d) => mapOrder(d))
   } catch (error) {
-    console.error("Error fetching active orders:", error)
-    return []
+    console.warn("getActiveOrders: usando fallback sin índice")
+    try {
+      // Traer admin_view=true y filtrar en memoria
+      const qSimple = query(collection(db, "orders"), where("admin_view", "==", true))
+      const snap = await getDocs(qSimple)
+      return snap.docs
+        .map((d) => mapOrder(d))
+        .filter((o: any) => o?.activo === true && ["Nuevo", "Preparando", "Enviando"].includes(o?.estado))
+    } catch (fallbackErr) {
+      console.error("getActiveOrders fallback failed:", fallbackErr)
+      return []
+    }
   }
 }
 
@@ -92,8 +118,17 @@ export const getOrdersByStatus = async (status: OrderStatus): Promise<Order[]> =
     const ordersSnapshot = await getDocs(q)
     return ordersSnapshot.docs.map((d) => mapOrder(d))
   } catch (error) {
-    console.error(`Error fetching ${status} orders:`, error)
-    return []
+    console.warn(`getOrdersByStatus: usando fallback sin índice para ${status}`)
+    try {
+      const qSimple = query(collection(db, "orders"), where("admin_view", "==", true))
+      const snap = await getDocs(qSimple)
+      return snap.docs
+        .map((d) => mapOrder(d))
+        .filter((o: any) => o?.estado === status)
+    } catch (fallbackErr) {
+      console.error("getOrdersByStatus fallback failed:", fallbackErr)
+      return []
+    }
   }
 }
 
