@@ -306,6 +306,17 @@ export const completeOrderTransactional = async (orderId: string): Promise<void>
       delivery,
     })
 
+    // PRE-LECTURAS: leer rider antes de cualquier escritura para calcular nextActive
+    let nextActive: number | undefined = undefined
+    if (riderRef?.path) {
+      const riderSnap = await tx.get(riderRef)
+      const riderData = riderSnap.data() as any
+      const currentActive = Number(riderData?.active_orders || 0)
+      nextActive = Math.max(currentActive - 1, 0)
+      console.log("[TX] pre-read rider active_orders:", { currentActive, nextActive })
+    }
+
+    // ESCRITURAS
     // Marcar orden
     tx.update(orderRef, {
       estado: ORDER_STATUS.COMPLETADOS,
@@ -331,14 +342,10 @@ export const completeOrderTransactional = async (orderId: string): Promise<void>
     // Actualizar rider SOLO si es DocumentReference
     if (riderRef?.path) {
       console.log("[TX] will update rider:", riderRef.path)
-      const riderSnap = await tx.get(riderRef)
-      const riderData = riderSnap.data() as any
-      const currentActive = Number(riderData?.active_orders || 0)
-      const nextActive = Math.max(currentActive - 1, 0)
       tx.update(riderRef, {
         asigned_rider_ref: deleteField(),
         number_deliverys: increment(1),
-        active_orders: nextActive,
+        active_orders: nextActive ?? undefined,
         earn: increment(delivery),
       })
     } else {
