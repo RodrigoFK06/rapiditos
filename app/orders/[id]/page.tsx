@@ -18,6 +18,7 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import type { OrderStatus } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import { ORDER_STATUS } from "@/lib/constants/status"
 
 export default function OrderDetailPage() {
   const params = useParams()
@@ -36,9 +37,15 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (orderId) {
+      console.log("[UI] subscribe order detail ->", { orderId })
+      const stop = useOrderStore.getState().listenToOrder(orderId)
       fetchOrderById(orderId)
       fetchOrderDetails(orderId)
       fetchActiveRiders()
+      return () => {
+        stop?.()
+        useOrderStore.getState().stopListeningOrder()
+      }
     }
   }, [orderId, fetchOrderById, fetchOrderDetails, fetchActiveRiders])
 
@@ -89,6 +96,7 @@ export default function OrderDetailPage() {
     if (!currentOrder) return
 
     try {
+      console.log("[UI] handleStatusUpdate ->", newStatus, { orderId: currentOrder?.id })
       // 1. ✅ Lógica para estado "Preparando" - Generar pickup_pin
       if (newStatus === "Preparando") {
         const pickupPin = Math.floor(Math.random() * 900 + 100).toString() // PIN de 3 dígitos
@@ -115,7 +123,7 @@ export default function OrderDetailPage() {
       }
 
       // 2. ✅ Lógica para estado "Completados" - usar servicio transaccional vía store
-      if (newStatus === "Completados") {
+  if (newStatus === ORDER_STATUS.COMPLETADOS) {
         const success = await updateStatus(currentOrder.id, newStatus)
         if (success) {
           toast.success("Pedido marcado como completado")
@@ -258,10 +266,10 @@ export default function OrderDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Nuevo">Nuevo</SelectItem>
-                    <SelectItem value="Preparando">Preparando</SelectItem>
-                    <SelectItem value="Enviando">Enviando</SelectItem>
-                    <SelectItem value="Completados">Completados</SelectItem>
+                    <SelectItem value={ORDER_STATUS.NUEVO}>{ORDER_STATUS.NUEVO}</SelectItem>
+                    <SelectItem value={ORDER_STATUS.PREPARANDO}>{ORDER_STATUS.PREPARANDO}</SelectItem>
+                    <SelectItem value={ORDER_STATUS.ENVIANDO}>{ORDER_STATUS.ENVIANDO}</SelectItem>
+                    <SelectItem value={ORDER_STATUS.COMPLETADOS}>{ORDER_STATUS.COMPLETADOS}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -9,6 +9,7 @@ import {
   completeOrderTransactional,
 } from "../services/orderService"
 import type { Order, OrderDetail, OrderStatus } from "../types"
+import { subscribeOrderById } from "../services/orderService"
 import { ORDER_STATUS } from "../constants/status"
 
 interface OrderState {
@@ -24,7 +25,11 @@ interface OrderState {
   updateStatus: (id: string, status: OrderStatus) => Promise<boolean>
   assignRider: (orderId: string, riderId: string) => Promise<boolean>
   fetchOrderDetails: (orderId: string) => Promise<void>
+  listenToOrder: (orderId: string) => (() => void) | undefined
+  stopListeningOrder: () => void
 }
+
+let orderUnsubscribe: (() => void) | null = null
 
 export const useOrderStore = create<OrderState>((set) => ({
   orders: [],
@@ -74,6 +79,7 @@ export const useOrderStore = create<OrderState>((set) => ({
   },
 
   updateStatus: async (id: string, status: OrderStatus) => {
+    console.log("[Store] updateStatus called with:", { orderId: id, nextStatus: status })
     set({ isLoading: true, error: null })
     try {
       let success = false
@@ -83,8 +89,8 @@ export const useOrderStore = create<OrderState>((set) => ({
       } else {
         success = await updateOrderStatus(id, status)
       }
-      if (success) {
-        // Refresh the order data
+      // Si hay suscripción activa, no forzamos setState; el snapshot llegará.
+      if (success && !orderUnsubscribe) {
         await getOrderById(id).then((order) => {
           set((state) => ({
             currentOrder: order,
@@ -108,18 +114,21 @@ export const useOrderStore = create<OrderState>((set) => ({
   },
 
   assignRider: async (orderId: string, riderId: string) => {
+    console.log("[Store] assignRider called with:", { orderId, riderId })
     set({ isLoading: true, error: null })
     try {
       // Usar transaccional con ruta de referencia completa
       await assignRiderTransactional(orderId, `/rider/${riderId}`)
-      // Refresh order data
-      await getOrderById(orderId).then((order) => {
-        set((state) => ({
-          currentOrder: order,
-          orders: state.orders.map((o) => (o.id === orderId ? { ...o, asigned: true } : o)),
-          activeOrders: state.activeOrders.map((o) => (o.id === orderId ? { ...o, asigned: true } : o)),
-        }))
-      })
+      // Si no hay suscripción, refrescar una vez
+      if (!orderUnsubscribe) {
+        await getOrderById(orderId).then((order) => {
+          set((state) => ({
+            currentOrder: order,
+            orders: state.orders.map((o) => (o.id === orderId ? { ...o, asigned: true } : o)),
+            activeOrders: state.activeOrders.map((o) => (o.id === orderId ? { ...o, asigned: true } : o)),
+          }))
+        })
+      }
       set({ isLoading: false })
       return true
     } catch (error) {
@@ -141,6 +150,32 @@ export const useOrderStore = create<OrderState>((set) => ({
         error: error instanceof Error ? error.message : "Error al cargar detalles del pedido",
         isLoading: false,
       })
+    }
+  },
+
+  listenToOrder: (orderId: string) => {
+    try {
+      if (orderUnsubscribe) {
+        orderUnsubscribe()
+        orderUnsubscribe = null
+      }
+  orderUnsubscribe = subscribeOrderById(orderId, (order: Order | null) => {
+        set({ currentOrder: order })
+      })
+      return orderUnsubscribe ?? undefined
+    } catch (e) {
+      console.error("[Store] listenToOrder ERROR", e)
+      return undefined
+    }
+  },
+  stopListeningOrder: () => {
+    try {
+      if (orderUnsubscribe) {
+        orderUnsubscribe()
+        orderUnsubscribe = null
+      }
+    } catch (e) {
+      console.error("[Store] stopListeningOrder ERROR", e)
     }
   },
 }))

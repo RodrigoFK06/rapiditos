@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   increment,
   deleteField,
+  onSnapshot,
   type DocumentData,
   type DocumentSnapshot,
   type DocumentReference,
@@ -212,6 +213,7 @@ export const assignRiderTransactional = async (
   orderId: string,
   riderRefPath: string
 ): Promise<void> => {
+  console.log("[Service] assignRiderTransactional START", { orderId, riderRefPath })
   const cleanPath = riderRefPath.replace(/^\/+/, "")
   const parts = cleanPath.split("/")
   if (parts.length !== 2 || parts[0] !== "rider") {
@@ -225,6 +227,7 @@ export const assignRiderTransactional = async (
     const orderSnap = await tx.get(orderRef)
     if (!orderSnap.exists()) throw new Error("ORDER_NOT_FOUND")
     const order = orderSnap.data() as DocumentData
+    console.log("[Service][TX] assignRider -> read order:", { estado: order.estado, admin_view: order.admin_view, asigned: order.asigned })
 
     // Validaciones
     if (order.admin_view !== true) throw new Error("FORBIDDEN_ORDER")
@@ -258,7 +261,7 @@ export const assignRiderTransactional = async (
     })
 
     // Actualizar orders
-    tx.update(orderRef, {
+  tx.update(orderRef, {
       asigned_rider_ref: newAssignedRef,
       assigned_rider_ref: newAssignedRef, // compat
       asigned: true,
@@ -272,28 +275,31 @@ export const assignRiderTransactional = async (
       active_orders: increment(1),
     })
   })
+  console.log("[Service] assignRiderTransactional COMMIT", { orderId })
 }
 
 /**
  * Marca una orden como "Completados" y limpia/actualiza referencias relacionadas en una sola transacción.
  */
 export const completeOrderTransactional = async (orderId: string): Promise<void> => {
+  console.log("[Service] completeOrderTransactional START", { orderId })
   const orderRef = doc(db, "orders", orderId)
 
   await runTransaction(db, async (tx) => {
     const orderSnap = await tx.get(orderRef)
     if (!orderSnap.exists()) throw new Error("ORDER_NOT_FOUND")
     const order = orderSnap.data() as DocumentData
+    console.log("[Service][TX] read order:", { estado: order.estado, admin_view: order.admin_view })
 
     // Idempotencia
-  if (order.estado === ORDER_STATUS.COMPLETADOS) return
+    if (order.estado === ORDER_STATUS.COMPLETADOS) return
 
     const deliveryPrice = Number(order.delivery_price ?? 0) || 0
     const clientRef = order.clienteref || order.cliente_ref || order.client_ref
     const riderRef = order.rider_ref
 
     // Actualizar order
-    tx.update(orderRef, {
+  tx.update(orderRef, {
       estado: ORDER_STATUS.COMPLETADOS,
       activo: false,
       fecha_entrega: order.fecha_entrega ?? serverTimestamp(),
@@ -328,4 +334,30 @@ export const completeOrderTransactional = async (orderId: string): Promise<void>
       }
     }
   })
+  console.log("[Service] completeOrderTransactional COMMIT", { orderId })
+}
+
+// ========================= REALTIME =========================
+export const subscribeOrderById = (
+  orderId: string,
+  cb: (order: Order | null) => void
+) => {
+  const orderRef = doc(db, "orders", orderId)
+  return onSnapshot(
+    orderRef,
+    (snap) => {
+      if (!snap.exists()) return cb(null)
+      try {
+        const mapped = mapOrder(snap as unknown as DocumentSnapshot<DocumentData>)
+        cb(mapped)
+      } catch (e) {
+        console.error("[Service] subscribeOrderById map error", e)
+        cb({ id: snap.id, ...(snap.data() as any) } as Order)
+      }
+    },
+    (error) => {
+      console.error("[Service] subscribeOrderById ERROR", error?.code, error?.message, error)
+      cb(null)
+    }
+  )
 }
