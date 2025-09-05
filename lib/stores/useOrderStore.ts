@@ -6,6 +6,8 @@ import {
   updateOrderStatus,
   assignRiderToOrder,
   getOrderDetails,
+  assignRiderTransactional,
+  completeOrderTransactional,
 } from "../services/orderService"
 import type { Order, OrderDetail, OrderStatus } from "../types"
 
@@ -74,7 +76,13 @@ export const useOrderStore = create<OrderState>((set) => ({
   updateStatus: async (id: string, status: OrderStatus) => {
     set({ isLoading: true, error: null })
     try {
-      const success = await updateOrderStatus(id, status)
+      let success = false
+      if (status === "Completados") {
+        await completeOrderTransactional(id)
+        success = true
+      } else {
+        success = await updateOrderStatus(id, status)
+      }
       if (success) {
         // Refresh the order data
         await getOrderById(id).then((order) => {
@@ -82,7 +90,7 @@ export const useOrderStore = create<OrderState>((set) => ({
             currentOrder: order,
             orders: state.orders.map((o) => (o.id === id ? { ...o, estado: status } : o)),
             activeOrders:
-              status === "Completado"
+              status === "Completados"
                 ? state.activeOrders.filter((o) => o.id !== id)
                 : state.activeOrders.map((o) => (o.id === id ? { ...o, estado: status } : o)),
           }))
@@ -102,23 +110,18 @@ export const useOrderStore = create<OrderState>((set) => ({
   assignRider: async (orderId: string, riderId: string) => {
     set({ isLoading: true, error: null })
     try {
-      const assignedRef = await assignRiderToOrder(orderId, riderId)
-      if (assignedRef) {
-        // Refresh the order data
-        await getOrderById(orderId).then((order) => {
-          set((state) => ({
-            currentOrder: order,
-            orders: state.orders.map((o) =>
-              o.id === orderId ? { ...o, assigned_rider_ref: assignedRef, asigned: true } : o,
-            ),
-            activeOrders: state.activeOrders.map((o) =>
-              o.id === orderId ? { ...o, assigned_rider_ref: assignedRef, asigned: true } : o,
-            ),
-          }))
-        })
-      }
+      // Usar transaccional con ruta de referencia completa
+      await assignRiderTransactional(orderId, `/rider/${riderId}`)
+      // Refresh order data
+      await getOrderById(orderId).then((order) => {
+        set((state) => ({
+          currentOrder: order,
+          orders: state.orders.map((o) => (o.id === orderId ? { ...o, asigned: true } : o)),
+          activeOrders: state.activeOrders.map((o) => (o.id === orderId ? { ...o, asigned: true } : o)),
+        }))
+      })
       set({ isLoading: false })
-      return Boolean(assignedRef)
+      return true
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Error al asignar repartidor",

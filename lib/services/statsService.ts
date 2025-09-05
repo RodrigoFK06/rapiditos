@@ -41,21 +41,24 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
       // Órdenes completadas hoy
       getDocs(query(
         collection(db, "orders"),
-        where("estado", "==", "Completado"),
+        where("admin_view", "==", true),
+        where("estado", "==", "Completados"),
         where("fecha_creacion", ">=", Timestamp.fromDate(today))
       )),
       
       // Órdenes completadas esta semana
       getDocs(query(
         collection(db, "orders"),
-        where("estado", "==", "Completado"),
+        where("admin_view", "==", true),
+        where("estado", "==", "Completados"),
         where("fecha_creacion", ">=", Timestamp.fromDate(week))
       )),
       
       // Órdenes completadas este mes
       getDocs(query(
         collection(db, "orders"),
-        where("estado", "==", "Completado"),
+        where("admin_view", "==", true),
+        where("estado", "==", "Completados"),
         where("fecha_creacion", ">=", Timestamp.fromDate(month))
       )),
       
@@ -68,6 +71,7 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
       // Órdenes activas
       getCountFromServer(query(
         collection(db, "orders"),
+        where("admin_view", "==", true),
         where("activo", "==", true),
         where("estado", "in", ["Nuevo", "Preparando", "Enviando"])
       )),
@@ -75,7 +79,8 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
       // Órdenes entregadas recientes para calcular tiempo promedio
       getDocs(query(
         collection(db, "orders"),
-        where("estado", "==", "Completado"),
+        where("admin_view", "==", true),
+        where("estado", "==", "Completados"),
         where("fecha_creacion", ">=", Timestamp.fromDate(subDays(new Date(), 7))),
         limit(100)
       ))

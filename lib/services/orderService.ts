@@ -8,6 +8,10 @@ import {
   updateDoc,
   addDoc,
   orderBy,
+  runTransaction,
+  serverTimestamp,
+  increment,
+  deleteField,
   type DocumentData,
   type DocumentSnapshot,
   type DocumentReference,
@@ -151,16 +155,21 @@ export const assignRiderToOrder = async (orderId: string, riderId: string): Prom
     const riderRef = doc(db, "rider", riderId)
     const orderDoc = await getDoc(orderRef)
     if (!orderDoc.exists()) return null
-    const order = orderDoc.data() as Order
-    const assignedRef = await addDoc(collection(db, "asigned_rider"), {
-      client_ref: order.cliente_ref,
-      rider_ref: riderRef,
+    const order = orderDoc.data() as any
+    const clientRef = order.clienteref ?? order.cliente_ref ?? order.client_ref ?? null
+    const clientAddrRef = order.client_address_ref ?? order.clientaddress_ref ?? null
+    const payload: Record<string, any> = {
+      client_ref: clientRef ?? null,
+      client_address: clientAddrRef ?? null,
       order_ref: orderRef,
-      client_address: order.client_address_ref,
-    })
+      rider_ref: riderRef,
+    }
+    const assignedRef = await addDoc(collection(db, "asigned_rider"), payload)
     await updateDoc(orderRef, {
+      asigned_rider_ref: assignedRef,
       assigned_rider_ref: assignedRef,
       asigned: true,
+      rider_ref: riderRef,
     })
     return assignedRef
   } catch (error) {
@@ -179,4 +188,127 @@ export const getOrderDetails = async (orderId: string): Promise<OrderDetail[]> =
     console.error("Error fetching order details:", error)
     return []
   }
+}
+
+// ========================= TRANSACCIONALES =========================
+
+/**
+ * Asigna un rider a una orden en una sola transacción, con validaciones e idempotencia.
+ * @param orderId ID de la orden
+ * @param riderRefPath Ruta del rider, p.ej. "/rider/PNQu5KDsGuEjCoveAw6g"
+ */
+export const assignRiderTransactional = async (
+  orderId: string,
+  riderRefPath: string
+): Promise<void> => {
+  const cleanPath = riderRefPath.replace(/^\/+/, "")
+  const parts = cleanPath.split("/")
+  if (parts.length !== 2 || parts[0] !== "rider") {
+    throw new Error("riderRefPath inválido. Debe ser /rider/{riderId}")
+  }
+  const riderRef = doc(db, parts[0], parts[1])
+  const orderRef = doc(db, "orders", orderId)
+  const assignedCol = collection(db, "asigned_rider")
+
+  await runTransaction(db, async (tx) => {
+    const orderSnap = await tx.get(orderRef)
+    if (!orderSnap.exists()) throw new Error("ORDER_NOT_FOUND")
+    const order = orderSnap.data() as DocumentData
+
+    // Validaciones
+    if (order.admin_view !== true) throw new Error("FORBIDDEN_ORDER")
+    if (order.estado === "Completados") return // idempotente: ya completada
+    const alreadyAssignedRef = order.asigned_rider_ref || order.assigned_rider_ref
+    if (order.asigned === true && alreadyAssignedRef) return // idempotente
+
+    // Validar rider
+    const riderSnap = await tx.get(riderRef)
+    if (!riderSnap.exists()) throw new Error("RIDER_NOT_FOUND")
+    const rider = riderSnap.data() as DocumentData
+    if (rider.active_rider !== true) throw new Error("RIDER_NOT_ACTIVE")
+
+    // Crear doc en asigned_rider
+    const newAssignedRef = doc(assignedCol)
+    const clientRef = order.clienteref || order.cliente_ref || order.client_ref || null
+    const clientAddressRef = order.client_address_ref || order.clientaddress_ref || null
+    tx.set(newAssignedRef, {
+      client_ref: clientRef ?? null,
+      client_address: clientAddressRef ?? null,
+      order_ref: orderRef,
+      rider_ref: riderRef,
+      created_at: serverTimestamp(),
+      status: "assigned",
+    })
+
+    // Actualizar orders
+    tx.update(orderRef, {
+      asigned_rider_ref: newAssignedRef,
+      assigned_rider_ref: newAssignedRef, // compat
+      asigned: true,
+      rider_ref: riderRef,
+      updated_at: serverTimestamp(),
+    })
+
+    // Actualizar rider
+    tx.update(riderRef, {
+      asigned_rider_ref: newAssignedRef,
+      active_orders: increment(1),
+    })
+  })
+}
+
+/**
+ * Marca una orden como "Completados" y limpia/actualiza referencias relacionadas en una sola transacción.
+ */
+export const completeOrderTransactional = async (orderId: string): Promise<void> => {
+  const orderRef = doc(db, "orders", orderId)
+
+  await runTransaction(db, async (tx) => {
+    const orderSnap = await tx.get(orderRef)
+    if (!orderSnap.exists()) throw new Error("ORDER_NOT_FOUND")
+    const order = orderSnap.data() as DocumentData
+
+    // Idempotencia
+    if (order.estado === "Completados") return
+
+    const deliveryPrice = Number(order.delivery_price ?? 0) || 0
+    const clientRef = order.clienteref || order.cliente_ref || order.client_ref
+    const riderRef = order.rider_ref
+
+    // Actualizar order
+    tx.update(orderRef, {
+      estado: "Completados",
+      activo: false,
+      fecha_entrega: order.fecha_entrega ?? serverTimestamp(),
+      updated_at: serverTimestamp(),
+    })
+
+    // Limpiar cliente
+    if (clientRef) {
+      tx.update(clientRef, {
+        chat_ref: deleteField(),
+        rider_ref: deleteField(),
+        orderref: deleteField(),
+        activeorders: deleteField(),
+      })
+    }
+
+    // Actualizar rider si existe
+    if (riderRef) {
+      const riderSnap = await tx.get(riderRef)
+      if (riderSnap.exists()) {
+        const rider = riderSnap.data() as DocumentData
+        const currentActive = Number(rider.active_orders ?? 0)
+        const riderUpdates: Record<string, any> = {
+          asigned_rider_ref: deleteField(),
+          number_deliverys: increment(1),
+          earn: increment(deliveryPrice),
+        }
+        if (currentActive > 0) {
+          riderUpdates.active_orders = increment(-1)
+        }
+        tx.update(riderRef, riderUpdates)
+      }
+    }
+  })
 }

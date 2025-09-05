@@ -7,6 +7,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     // Get active orders
     const activeOrdersQuery = query(
       collection(db, "orders"),
+      where("admin_view", "==", true),
       where("activo", "==", true),
       where("estado", "in", ["Nuevo", "Preparando", "Enviando"]),
     )
@@ -19,13 +20,17 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const connectedRiders = connectedRidersSnapshot.size
 
     // Get total revenue (from completed orders)
-    const completedOrdersQuery = query(collection(db, "orders"), where("estado", "==", "Completado"))
+    const completedOrdersQuery = query(
+      collection(db, "orders"),
+      where("admin_view", "==", true),
+      where("estado", "==", "Completados")
+    )
     const completedOrdersSnapshot = await getDocs(completedOrdersQuery)
     const completedOrders = completedOrdersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Order)
     const totalRevenue = completedOrders.reduce((sum, order) => sum + order.total, 0)
 
     // Get total orders
-    const ordersSnapshot = await getDocs(collection(db, "orders"))
+  const ordersSnapshot = await getDocs(query(collection(db, "orders"), where("admin_view", "==", true)))
     const totalOrders = ordersSnapshot.size
 
     // Get restaurant count
@@ -33,7 +38,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const restaurantCount = restaurantsSnapshot.size
 
     // Get user count
-    const usersSnapshot = await getDocs(collection(db, "users"))
+  const usersSnapshot = await getDocs(collection(db, "users"))
     const userCount = usersSnapshot.size
 
     return {
@@ -59,7 +64,12 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
 export const getRecentOrders = async (limitCount = 5): Promise<Order[]> => {
   try {
-    const q = query(collection(db, "orders"), orderBy("fecha_creacion", "desc"), limit(limitCount))
+    const q = query(
+      collection(db, "orders"),
+      where("admin_view", "==", true),
+      orderBy("fecha_creacion", "desc"),
+      limit(limitCount)
+    )
     const ordersSnapshot = await getDocs(q)
     return ordersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Order)
   } catch (error) {
