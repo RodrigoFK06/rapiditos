@@ -320,7 +320,7 @@ export const completeOrderTransactional = async (orderId: string): Promise<void>
     // Marcar orden
     tx.update(orderRef, {
       estado: ORDER_STATUS.COMPLETADOS,
-      activo: false,
+  activo: true,
       fecha_entrega: (order as any).fecha_entrega ?? serverTimestamp(),
       updated_at: serverTimestamp(),
     })
