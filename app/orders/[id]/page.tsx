@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useOrderStore } from "@/lib/stores/useOrderStore"
 import { useRiderStore } from "@/lib/stores/useRiderStore"
-import { doc, getDoc, updateDoc, runTransaction } from "firebase/firestore"
+import { doc, getDoc, updateDoc, runTransaction, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { User, Restaurant, ClientAddress, Rider } from "@/lib/types"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
@@ -60,9 +60,11 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (currentOrder) {
-      // Fetch client data
-      if (currentOrder.cliente_ref) {
-        getDoc(currentOrder.cliente_ref).then((snap) => {
+      // Fetch client data (preferir clienteref si existe)
+      const anyOrder: any = currentOrder as any
+      if (anyOrder.clienteref || anyOrder.cliente_ref) {
+        const cref = anyOrder.clienteref || anyOrder.cliente_ref
+        getDoc(cref).then((snap) => {
           if (snap.exists()) setClient({ ...snap.data() as User, uid: snap.id })
         })
       }
@@ -83,11 +85,16 @@ export default function OrderDetailPage() {
         })
       }
       
-      // Fetch assigned rider data desde rider_ref
-      if (currentOrder.rider_ref) {
-        getDoc(currentOrder.rider_ref).then((snap) => {
+      // Suscribirse al rider asignado para ver cambios en vivo
+      let unsubRider: (() => void) | null = null
+      if ((currentOrder as any).rider_ref) {
+        const riderRef = (currentOrder as any).rider_ref
+  unsubRider = onSnapshot(riderRef as any, (snap: any) => {
           if (snap.exists()) setAssignedRider({ ...snap.data() as Rider, uid: snap.id })
         })
+      }
+      return () => {
+        if (unsubRider) unsubRider()
       }
     }
   }, [currentOrder])
@@ -96,7 +103,7 @@ export default function OrderDetailPage() {
     if (!currentOrder) return
 
     try {
-      console.log("[UI] handleStatusUpdate ->", newStatus, { orderId: currentOrder?.id })
+  console.log("[UI] handleStatusUpdate ->", newStatus, { orderId: currentOrder?.id })
       // 1. ✅ Lógica para estado "Preparando" - Generar pickup_pin
       if (newStatus === "Preparando") {
         const pickupPin = Math.floor(Math.random() * 900 + 100).toString() // PIN de 3 dígitos
@@ -122,7 +129,7 @@ export default function OrderDetailPage() {
         return
       }
 
-      // 2. ✅ Lógica para estado "Completados" - usar servicio transaccional vía store
+  // 2. ✅ Lógica para estado "Completados" - usar servicio transaccional vía store
   if (newStatus === ORDER_STATUS.COMPLETADOS) {
         const success = await updateStatus(currentOrder.id, newStatus)
         if (success) {
@@ -214,12 +221,10 @@ export default function OrderDetailPage() {
                   <span className="text-sm">{address.address}</span>
                 </div>
               )}
-              {assignedRider && (
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Rider asignado:</span>
-                  <span className="text-sm">{assignedRider.display_name}</span>
-                </div>
-              )}
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Rider asignado:</span>
+                <span className="text-sm">{assignedRider ? assignedRider.display_name : "—"}</span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Total:</span>
                 <Badge variant="outline">{formatCurrency(currentOrder.total)}</Badge>
@@ -261,8 +266,8 @@ export default function OrderDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Estado del pedido</label>
-                <Select value={currentOrder.estado} onValueChange={(value) => handleStatusUpdate(value as OrderStatus)}>
-                  <SelectTrigger className="mt-1">
+                <Select value={currentOrder.estado} onValueChange={(value) => handleStatusUpdate(value as OrderStatus)} disabled={isLoading}>
+                  <SelectTrigger className="mt-1" disabled={isLoading}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -276,8 +281,8 @@ export default function OrderDetailPage() {
 
               <div>
                 <label className="text-sm font-medium">Repartidor asignado</label>
-                <Select value={currentOrder.assigned_rider_ref?.id || ""} onValueChange={handleRiderAssignment}>
-                  <SelectTrigger className="mt-1">
+                <Select value={(currentOrder.rider_ref as any)?.id || ""} onValueChange={handleRiderAssignment} disabled={isLoading}>
+                  <SelectTrigger className="mt-1" disabled={isLoading}>
                     <SelectValue placeholder="Seleccionar repartidor" />
                   </SelectTrigger>
                   <SelectContent>

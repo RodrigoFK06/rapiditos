@@ -27,6 +27,7 @@ const mapOrder = (docSnap: DocumentSnapshot<DocumentData>): Order => {
   return {
     id: docSnap.id,
     ...data,
+  // Compat: los campos pueden venir como cliente_ref o clienteref según origen
     fecha_creacion:
       data.fecha_creacion instanceof Timestamp
         ? data.fecha_creacion.toDate()
@@ -168,7 +169,7 @@ export const assignRiderToOrder = async (orderId: string, riderId: string): Prom
     const orderDoc = await getDoc(orderRef)
     if (!orderDoc.exists()) return null
     const order = orderDoc.data() as any
-    const clientRef = order.clienteref ?? order.cliente_ref ?? order.client_ref ?? null
+  const clientRef = order.clienteref ?? order.cliente_ref ?? order.client_ref ?? null
     const clientAddrRef = order.client_address_ref ?? order.clientaddress_ref ?? null
     const payload: Record<string, any> = {
       client_ref: clientRef ?? null,
@@ -179,7 +180,6 @@ export const assignRiderToOrder = async (orderId: string, riderId: string): Prom
     const assignedRef = await addDoc(collection(db, "asigned_rider"), payload)
     await updateDoc(orderRef, {
       asigned_rider_ref: assignedRef,
-      assigned_rider_ref: assignedRef,
       asigned: true,
       rider_ref: riderRef,
     })
@@ -232,7 +232,7 @@ export const assignRiderTransactional = async (
     // Validaciones
     if (order.admin_view !== true) throw new Error("FORBIDDEN_ORDER")
   if (order.estado === ORDER_STATUS.COMPLETADOS) return // idempotente: ya completada
-    const alreadyAssignedRef = order.asigned_rider_ref || order.assigned_rider_ref
+  const alreadyAssignedRef = order.asigned_rider_ref
     if (order.asigned === true && alreadyAssignedRef) return // idempotente
 
     // Validar rider
@@ -241,7 +241,7 @@ export const assignRiderTransactional = async (
     const rider = riderSnap.data() as DocumentData
     if (rider.active_rider !== true) throw new Error("RIDER_NOT_ACTIVE")
 
-    // Crear doc en asigned_rider (todas las refs deben ser DocumentReference válidas)
+  // Crear doc en asigned_rider (todas las refs deben ser DocumentReference válidas)
     const newAssignedRef = doc(assignedCol)
     const clientRef = order.clienteref || order.cliente_ref || order.client_ref
     const clientAddressRef = order.client_address_ref || order.clientaddress_ref
@@ -260,10 +260,9 @@ export const assignRiderTransactional = async (
       status: "assigned",
     })
 
-    // Actualizar orders
+  // Actualizar orders
   tx.update(orderRef, {
       asigned_rider_ref: newAssignedRef,
-      assigned_rider_ref: newAssignedRef, // compat
       asigned: true,
       rider_ref: riderRef,
       updated_at: serverTimestamp(),
@@ -285,56 +284,76 @@ export const completeOrderTransactional = async (orderId: string): Promise<void>
   console.log("[Service] completeOrderTransactional START", { orderId })
   const orderRef = doc(db, "orders", orderId)
 
-  await runTransaction(db, async (tx) => {
+  return runTransaction(db, async (tx) => {
     const orderSnap = await tx.get(orderRef)
-    if (!orderSnap.exists()) throw new Error("ORDER_NOT_FOUND")
+    if (!orderSnap.exists()) {
+      console.error("[TX] order not found")
+      return
+    }
     const order = orderSnap.data() as DocumentData
-    console.log("[Service][TX] read order:", { estado: order.estado, admin_view: order.admin_view })
+    console.log("[TX] read order:", { estado: order.estado, admin_view: order.admin_view })
 
     // Idempotencia
     if (order.estado === ORDER_STATUS.COMPLETADOS) return
 
-    const deliveryPrice = Number(order.delivery_price ?? 0) || 0
-    const clientRef = order.clienteref || order.cliente_ref || order.client_ref
-    const riderRef = order.rider_ref
+    const clientRef = (order as any).clienteref
+    const riderRef = (order as any).rider_ref
+    const delivery = Number((order as any).delivery_price) || 0
 
-    // Actualizar order
-  tx.update(orderRef, {
-      estado: ORDER_STATUS.COMPLETADOS,
-      activo: false,
-      fecha_entrega: order.fecha_entrega ?? serverTimestamp(),
-      updated_at: serverTimestamp(),
+    console.log("[TX] refs:", {
+      hasClient: !!(clientRef && (clientRef as any).path),
+      hasRider: !!(riderRef && (riderRef as any).path),
+      delivery,
     })
 
-    // Limpiar cliente
-    if (clientRef) {
+    // Marcar orden
+    tx.update(orderRef, {
+      estado: ORDER_STATUS.COMPLETADOS,
+      activo: false,
+      fecha_entrega: (order as any).fecha_entrega ?? serverTimestamp(),
+      updated_at: serverTimestamp(),
+    })
+    console.log("[TX] scheduled order update")
+
+    // Limpiar cliente SOLO si es DocumentReference
+    if (clientRef?.path) {
+      console.log("[TX] will update client:", clientRef.path)
       tx.update(clientRef, {
         chat_ref: deleteField(),
         rider_ref: deleteField(),
         orderref: deleteField(),
         activeorders: deleteField(),
       })
+    } else {
+      console.warn("[TX] clienteref missing or invalid, skipping user cleanup")
     }
 
-    // Actualizar rider si existe
-    if (riderRef) {
+    // Actualizar rider SOLO si es DocumentReference
+    if (riderRef?.path) {
+      console.log("[TX] will update rider:", riderRef.path)
       const riderSnap = await tx.get(riderRef)
-      if (riderSnap.exists()) {
-        const rider = riderSnap.data() as DocumentData
-        const currentActive = Number(rider.active_orders ?? 0)
-        const riderUpdates: Record<string, any> = {
-          asigned_rider_ref: deleteField(),
-          number_deliverys: increment(1),
-          earn: increment(deliveryPrice),
-        }
-        if (currentActive > 0) {
-          riderUpdates.active_orders = increment(-1)
-        }
-        tx.update(riderRef, riderUpdates)
-      }
+      const riderData = riderSnap.data() as any
+      const currentActive = Number(riderData?.active_orders || 0)
+      const nextActive = Math.max(currentActive - 1, 0)
+      tx.update(riderRef, {
+        asigned_rider_ref: deleteField(),
+        number_deliverys: increment(1),
+        active_orders: nextActive,
+        earn: increment(delivery),
+      })
+    } else {
+      console.warn("[TX] rider_ref missing, skipping rider counters")
     }
+
+    console.log("[TX] all writes scheduled")
   })
-  console.log("[Service] completeOrderTransactional COMMIT", { orderId })
+    .then(() => {
+      console.log("[Service] completeOrderTransactional COMMIT", { orderId })
+    })
+    .catch((err) => {
+      console.error("[Service] completeOrderTransactional ERROR", (err as any)?.code, (err as any)?.message, err)
+      throw err
+    })
 }
 
 // ========================= REALTIME =========================
@@ -357,6 +376,21 @@ export const subscribeOrderById = (
     },
     (error) => {
       console.error("[Service] subscribeOrderById ERROR", error?.code, error?.message, error)
+      cb(null)
+    }
+  )
+}
+
+// Suscripción a un rider por referencia (para ver datos en vivo del repartidor asignado)
+export const subscribeRiderByRef = (
+  riderRef: DocumentReference,
+  cb: (data: any | null) => void
+) => {
+  return onSnapshot(
+    riderRef,
+    (snap) => cb(snap.exists() ? { id: snap.id, ...snap.data() } : null),
+    (error) => {
+      console.error("[Service] subscribeRiderByRef ERROR", error?.code, error?.message, error)
       cb(null)
     }
   )

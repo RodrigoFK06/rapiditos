@@ -105,6 +105,7 @@ export const useOrderStore = create<OrderState>((set) => ({
       set({ isLoading: false })
       return success
     } catch (error) {
+      console.error("[Store] updateStatus ERROR", error)
       set({
         error: error instanceof Error ? error.message : "Error al actualizar el estado del pedido",
         isLoading: false,
@@ -117,6 +118,18 @@ export const useOrderStore = create<OrderState>((set) => ({
     console.log("[Store] assignRider called with:", { orderId, riderId })
     set({ isLoading: true, error: null })
     try {
+      const state = (useOrderStore.getState() as any)
+      const current = state.currentOrder as any
+      if (current?.estado === ORDER_STATUS.COMPLETADOS) {
+        console.warn("[Store] assignRider aborted: order already completed")
+        set({ isLoading: false })
+        return false
+      }
+      if (current?.asigned === true && current?.rider_ref) {
+        console.warn("[Store] assignRider aborted: already assigned")
+        set({ isLoading: false })
+        return true
+      }
       // Usar transaccional con ruta de referencia completa
       await assignRiderTransactional(orderId, `/rider/${riderId}`)
       // Si no hay suscripción, refrescar una vez

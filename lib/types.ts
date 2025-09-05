@@ -94,8 +94,9 @@ export interface Order {
   cliente_id: string
   cliente_nombre: string
   cliente_ref: DocumentReference
+  clienteref?: DocumentReference
   client_address_ref: DocumentReference
-  assigned_rider_ref?: DocumentReference
+  asigned_rider_ref?: DocumentReference
   rider_ref?: DocumentReference
   restaurantref: DocumentReference
   estado: OrderStatus
