@@ -4,12 +4,12 @@ import {
   getActiveOrders,
   getOrderById,
   updateOrderStatus,
-  assignRiderToOrder,
   getOrderDetails,
   assignRiderTransactional,
   completeOrderTransactional,
 } from "../services/orderService"
 import type { Order, OrderDetail, OrderStatus } from "../types"
+import { ORDER_STATUS } from "../constants/status"
 
 interface OrderState {
   orders: Order[]
@@ -77,7 +77,7 @@ export const useOrderStore = create<OrderState>((set) => ({
     set({ isLoading: true, error: null })
     try {
       let success = false
-      if (status === "Completados") {
+      if (status === ORDER_STATUS.COMPLETADOS) {
         await completeOrderTransactional(id)
         success = true
       } else {
@@ -90,7 +90,7 @@ export const useOrderStore = create<OrderState>((set) => ({
             currentOrder: order,
             orders: state.orders.map((o) => (o.id === id ? { ...o, estado: status } : o)),
             activeOrders:
-              status === "Completados"
+              status === ORDER_STATUS.COMPLETADOS
                 ? state.activeOrders.filter((o) => o.id !== id)
                 : state.activeOrders.map((o) => (o.id === id ? { ...o, estado: status } : o)),
           }))

@@ -76,11 +76,10 @@ export default function OrderDetailPage() {
         })
       }
       
-      // Fetch assigned rider data
-      if (currentOrder.assigned_rider_ref) {
-        getDoc(currentOrder.assigned_rider_ref).then((snap) => {
-          if (snap.exists())
-            setAssignedRider({ ...snap.data() as Rider, uid: snap.id })
+      // Fetch assigned rider data desde rider_ref
+      if (currentOrder.rider_ref) {
+        getDoc(currentOrder.rider_ref).then((snap) => {
+          if (snap.exists()) setAssignedRider({ ...snap.data() as Rider, uid: snap.id })
         })
       }
     }
@@ -115,94 +114,15 @@ export default function OrderDetailPage() {
         return
       }
 
-      // 2. ✅ Lógica para estado "Completados" - Limpieza completa
+      // 2. ✅ Lógica para estado "Completados" - usar servicio transaccional vía store
       if (newStatus === "Completados") {
-        console.log("🔥 ENTRANDO EN LÓGICA DE COMPLETADOS")
-        console.log("🔍 ORDEN COMPLETA:", currentOrder)
-        console.log("🔍 currentOrder.cliente_ref:", currentOrder.cliente_ref?.id)
-        console.log("🔍 currentOrder.rider_ref:", currentOrder.rider_ref?.id)
-        console.log("🔍 Posibles campos de cliente:", {
-          cliente_ref: currentOrder.cliente_ref,
-          clienteref: (currentOrder as any).clienteref,
-          client_ref: (currentOrder as any).client_ref,
-          clientRef: (currentOrder as any).clientRef,
-          user_ref: (currentOrder as any).user_ref
-        })
-        console.log("🔍 Posibles campos de rider:", {
-          rider_ref: currentOrder.rider_ref,
-          riderRef: (currentOrder as any).riderRef,
-          assigned_rider_ref: currentOrder.assigned_rider_ref
-        })
-        
-        await runTransaction(db, async (transaction) => {
-          const orderRef = doc(db, "orders", currentOrder.id)
-          
-          // IMPORTANTE: Todas las LECTURAS primero (antes de cualquier escritura)
-          let riderData = null
-          if (currentOrder.rider_ref) {
-            const riderDoc = await transaction.get(currentOrder.rider_ref)
-            if (riderDoc.exists()) {
-              riderData = riderDoc.data()
-              console.log("📋 Datos del rider leídos:", riderData.active_orders, riderData.number_deliverys)
-            }
-          }
-
-          let clientData = null
-          if ((currentOrder as any).clienteref) {
-            const clientDoc = await transaction.get((currentOrder as any).clienteref)
-            if (clientDoc.exists()) {
-              clientData = clientDoc.data()
-              console.log("👤 Datos del cliente leídos:", (clientData as any)?.activeorders)
-            }
-          }
-
-          // Ahora todas las ESCRITURAS después de las lecturas
-          
-          // A. Actualizar campos del pedido
-          transaction.update(orderRef, {
-            estado: newStatus,
-            activo: false, // ✅ CORREGIDO: debe ser false cuando está completado (ya no activo)
-            fecha_entrega: new Date()
-          })
-
-          // B. Limpiar chat_ref del cliente y actualizar activeorders
-          if ((currentOrder as any).clienteref && clientData) {
-            console.log("✅ ACTUALIZANDO CLIENTE - activeorders: 0")
-            transaction.update((currentOrder as any).clienteref, {
-              chat_ref: null,
-              activeorders: 0 // ✅ AGREGADO: activeorders pasa a 0 cuando se completa
-            })
-          } else {
-            console.log("❌ NO SE ACTUALIZA CLIENTE:", {
-              tieneRef: !!(currentOrder as any).clienteref,
-              tieneData: !!clientData
-            })
-          }
-
-          // C. Limpiar asignación del rider
-          if (currentOrder.rider_ref && riderData) {
-            const currentDeliveries = riderData.number_deliverys || 0
-            const currentActiveOrders = riderData.active_orders || 0
-            console.log("✅ ACTUALIZANDO RIDER - active_orders:", currentActiveOrders, "→", Math.max(0, currentActiveOrders - 1))
-            
-            transaction.update(currentOrder.rider_ref, {
-              asigned_rider_ref: null,
-              asigned_rider_ref2: null,
-              active_orders: Math.max(0, currentActiveOrders - 1), // ✅ CORREGIDO: decrementar -1, no poner en 0
-              number_deliverys: currentDeliveries + 1
-            })
-          } else {
-            console.log("❌ NO SE ACTUALIZA RIDER:", {
-              tieneRef: !!currentOrder.rider_ref,
-              tieneData: !!riderData
-            })
-          }
-        })
-
-        toast.success("Pedido marcado como completado. Se han limpiado todas las referencias.")
-        
-        // Refrescar datos del pedido
-        fetchOrderById(orderId)
+        const success = await updateStatus(currentOrder.id, newStatus)
+        if (success) {
+          toast.success("Pedido marcado como completado")
+          fetchOrderById(orderId)
+        } else {
+          toast.error("Error al completar el pedido")
+        }
         return
       }
 

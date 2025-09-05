@@ -17,6 +17,7 @@ import {
   type DocumentReference,
 } from "firebase/firestore"
 import { db } from "../firebase"
+import { ORDER_STATUS } from "../constants/status"
 import type { Order, OrderDetail, OrderStatus } from "../types"
 import { Timestamp } from "firebase/firestore"
 
@@ -92,7 +93,11 @@ export const getActiveOrders = async (): Promise<Order[]> => {
       collection(db, "orders"),
       where("admin_view", "==", true),
       where("activo", "==", true),
-      where("estado", "in", ["Nuevo", "Preparando", "Enviando"]),
+      where("estado", "in", [
+        ORDER_STATUS.NUEVO,
+        ORDER_STATUS.PREPARANDO,
+        ORDER_STATUS.ENVIANDO,
+      ]),
     )
     const ordersSnapshot = await getDocs(q)
     return ordersSnapshot.docs.map((d) => mapOrder(d))
@@ -104,7 +109,13 @@ export const getActiveOrders = async (): Promise<Order[]> => {
       const snap = await getDocs(qSimple)
       return snap.docs
         .map((d) => mapOrder(d))
-        .filter((o: any) => o?.activo === true && ["Nuevo", "Preparando", "Enviando"].includes(o?.estado))
+        .filter((o: any) =>
+          o?.activo === true && [
+            ORDER_STATUS.NUEVO,
+            ORDER_STATUS.PREPARANDO,
+            ORDER_STATUS.ENVIANDO,
+          ].includes(o?.estado)
+        )
     } catch (fallbackErr) {
       console.error("getActiveOrders fallback failed:", fallbackErr)
       return []
@@ -140,7 +151,7 @@ export const updateOrderStatus = async (id: string, status: OrderStatus): Promis
   try {
     await updateDoc(doc(db, "orders", id), {
       estado: status,
-  ...(status === "Completados" ? { fecha_entrega: new Date() } : {}),
+  ...(status === ORDER_STATUS.COMPLETADOS ? { fecha_entrega: new Date() } : {}),
     })
     return true
   } catch (error) {
@@ -217,7 +228,7 @@ export const assignRiderTransactional = async (
 
     // Validaciones
     if (order.admin_view !== true) throw new Error("FORBIDDEN_ORDER")
-    if (order.estado === "Completados") return // idempotente: ya completada
+  if (order.estado === ORDER_STATUS.COMPLETADOS) return // idempotente: ya completada
     const alreadyAssignedRef = order.asigned_rider_ref || order.assigned_rider_ref
     if (order.asigned === true && alreadyAssignedRef) return // idempotente
 
@@ -227,13 +238,19 @@ export const assignRiderTransactional = async (
     const rider = riderSnap.data() as DocumentData
     if (rider.active_rider !== true) throw new Error("RIDER_NOT_ACTIVE")
 
-    // Crear doc en asigned_rider
+    // Crear doc en asigned_rider (todas las refs deben ser DocumentReference válidas)
     const newAssignedRef = doc(assignedCol)
-    const clientRef = order.clienteref || order.cliente_ref || order.client_ref || null
-    const clientAddressRef = order.client_address_ref || order.clientaddress_ref || null
+    const clientRef = order.clienteref || order.cliente_ref || order.client_ref
+    const clientAddressRef = order.client_address_ref || order.clientaddress_ref
+
+    // Validar que existan referencias de cliente y dirección
+    const isDocRef = (ref: any) => !!ref && typeof ref.id === "string"
+    if (!isDocRef(clientRef) || !isDocRef(clientAddressRef)) {
+      throw new Error("ORDER_CLIENT_REFS_MISSING")
+    }
     tx.set(newAssignedRef, {
-      client_ref: clientRef ?? null,
-      client_address: clientAddressRef ?? null,
+      client_ref: clientRef,
+      client_address: clientAddressRef,
       order_ref: orderRef,
       rider_ref: riderRef,
       created_at: serverTimestamp(),
@@ -269,7 +286,7 @@ export const completeOrderTransactional = async (orderId: string): Promise<void>
     const order = orderSnap.data() as DocumentData
 
     // Idempotencia
-    if (order.estado === "Completados") return
+  if (order.estado === ORDER_STATUS.COMPLETADOS) return
 
     const deliveryPrice = Number(order.delivery_price ?? 0) || 0
     const clientRef = order.clienteref || order.cliente_ref || order.client_ref
@@ -277,7 +294,7 @@ export const completeOrderTransactional = async (orderId: string): Promise<void>
 
     // Actualizar order
     tx.update(orderRef, {
-      estado: "Completados",
+      estado: ORDER_STATUS.COMPLETADOS,
       activo: false,
       fecha_entrega: order.fecha_entrega ?? serverTimestamp(),
       updated_at: serverTimestamp(),

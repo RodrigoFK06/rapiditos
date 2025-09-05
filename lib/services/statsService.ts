@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore"
 import { startOfDay, startOfWeek, startOfMonth, subDays, format } from "date-fns"
 import { db } from "../firebase"
+import { ORDER_STATUS } from "../constants/status"
 import type {
   OrdersStats,
   TopDish,
@@ -42,7 +43,7 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
       getDocs(query(
         collection(db, "orders"),
         where("admin_view", "==", true),
-        where("estado", "==", "Completados"),
+        where("estado", "==", ORDER_STATUS.COMPLETADOS),
         where("fecha_creacion", ">=", Timestamp.fromDate(today))
       )),
       
@@ -50,7 +51,7 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
       getDocs(query(
         collection(db, "orders"),
         where("admin_view", "==", true),
-        where("estado", "==", "Completados"),
+        where("estado", "==", ORDER_STATUS.COMPLETADOS),
         where("fecha_creacion", ">=", Timestamp.fromDate(week))
       )),
       
@@ -58,7 +59,7 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
       getDocs(query(
         collection(db, "orders"),
         where("admin_view", "==", true),
-        where("estado", "==", "Completados"),
+        where("estado", "==", ORDER_STATUS.COMPLETADOS),
         where("fecha_creacion", ">=", Timestamp.fromDate(month))
       )),
       
@@ -80,7 +81,7 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
       getDocs(query(
         collection(db, "orders"),
         where("admin_view", "==", true),
-        where("estado", "==", "Completados"),
+        where("estado", "==", ORDER_STATUS.COMPLETADOS),
         where("fecha_creacion", ">=", Timestamp.fromDate(subDays(new Date(), 7))),
         limit(100)
       ))
@@ -148,7 +149,9 @@ export const getDashboardKpis = async (): Promise<DashboardKpis> => {
 
 export const getOrdersStats = async (): Promise<OrdersStats> => {
   try {
-    const ordersSnapshot = await getDocs(collection(db, "orders"))
+    const ordersSnapshot = await getDocs(
+      query(collection(db, "orders"), where("admin_view", "==", true))
+    )
     let total = 0
     let completed = 0
     let canceled = 0
@@ -174,7 +177,7 @@ export const getOrdersStats = async (): Promise<OrdersStats> => {
       paymentMap[method] = (paymentMap[method] || 0) + 1
 
       switch (data.estado) {
-        case "Completados":
+        case ORDER_STATUS.COMPLETADOS:
           completed++
           revenue += data.total || 0
           break
@@ -289,7 +292,9 @@ export const getRestaurantsStats = async (): Promise<RestaurantsStats> => {
     })
     const totalActive = restaurants.filter((r) => r.isActive).length
 
-    const ordersSnapshot = await getDocs(collection(db, "orders"))
+    const ordersSnapshot = await getDocs(
+      query(collection(db, "orders"), where("admin_view", "==", true))
+    )
     const countMap: Record<string, { orders: number; revenue: number }> = {}
     ordersSnapshot.forEach((doc) => {
       const data = doc.data() as Order
@@ -298,7 +303,7 @@ export const getRestaurantsStats = async (): Promise<RestaurantsStats> => {
         const id = restRef.id
         if (!countMap[id]) countMap[id] = { orders: 0, revenue: 0 }
         countMap[id].orders++
-        if (data.estado === "Completados") {
+  if (data.estado === ORDER_STATUS.COMPLETADOS) {
           countMap[id].revenue += data.total || 0
         }
       }
@@ -344,7 +349,11 @@ export const getTimeStats = async (): Promise<TimeStats> => {
   try {
     const start = subDays(startOfDay(new Date()), 6)
     const ordersSnapshot = await getDocs(
-      query(collection(db, "orders"), where("fecha_creacion", ">=", start))
+      query(
+        collection(db, "orders"),
+        where("admin_view", "==", true),
+        where("fecha_creacion", ">=", start)
+      )
     )
     const perDayMap: Record<string, { sum: number; count: number }> = {}
     const perHourMap: Record<string, number> = {}
@@ -357,7 +366,7 @@ export const getTimeStats = async (): Promise<TimeStats> => {
       const day = format(created, "yyyy-MM-dd")
       const hour = created.getHours().toString()
       perHourMap[hour] = (perHourMap[hour] || 0) + 1
-      if (data.estado === "Completados" && data.fecha_entrega) {
+  if (data.estado === ORDER_STATUS.COMPLETADOS && data.fecha_entrega) {
         const delivered = (data.fecha_entrega instanceof Timestamp
           ? data.fecha_entrega.toDate()
           : data.fecha_entrega) as Date

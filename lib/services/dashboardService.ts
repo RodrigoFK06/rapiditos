@@ -1,6 +1,7 @@
 import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore"
 import { db } from "../firebase"
 import type { DashboardStats, Order } from "../types"
+import { ORDER_STATUS } from "../constants/status"
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
@@ -9,7 +10,11 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       collection(db, "orders"),
       where("admin_view", "==", true),
       where("activo", "==", true),
-      where("estado", "in", ["Nuevo", "Preparando", "Enviando"]),
+      where("estado", "in", [
+        ORDER_STATUS.NUEVO,
+        ORDER_STATUS.PREPARANDO,
+        ORDER_STATUS.ENVIANDO,
+      ]),
     )
     const activeOrdersSnapshot = await getDocs(activeOrdersQuery)
     const activeOrders = activeOrdersSnapshot.size
@@ -23,7 +28,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const completedOrdersQuery = query(
       collection(db, "orders"),
       where("admin_view", "==", true),
-      where("estado", "==", "Completados")
+      where("estado", "==", ORDER_STATUS.COMPLETADOS)
     )
     const completedOrdersSnapshot = await getDocs(completedOrdersQuery)
     const completedOrders = completedOrdersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Order)
